@@ -22,31 +22,33 @@ That call already does the work you'd normally wire up yourself, on by default:
 - **Prompt-cache optimization.** Cache breakpoints go where each provider wants them (Anthropic, OpenAI, Google).
 - **Reliability.** Calls retry with backoff, then fail over to the next provider.
 
+You don't call any of these yourself; they run inside `llm(...)`. (The demo calls
+`compress()` directly just to show the savings number. Normally you never touch it.)
+
 ```bash
 pip install 'justllm[all]'
 ```
 
-## A little more
+## More, when you need it
 
-Same three lines. Each of these is one call or one kwarg:
+You set up `llm` once (those three lines). After that, each of these is a single
+call on it. Reach for the ones you need and ignore the rest:
 
 ```python
-llm.extract(Invoice, text)                    # structured output (validated Pydantic)
-llm.stream("...")                             # token streaming
-await llm.acall("...")                        # async
-llm.map(prompts, concurrency=8)               # many prompts at once, in order
-llm.embed(texts)                              # embeddings
-chat = llm.chat(); chat.send("..."); chat.send("...")   # multi-turn, remembers history
-llm.agent(system="...").run("...")            # tool-calling loop
-llm.judge(output, criteria="...")             # LLM-as-judge score
-llm.evaluate(cases)                           # run + grade a test set
-LLM(router=Cascade(small=cheap, large=big))   # cheap first, escalate when needed
+llm.stream("...")                    # token streaming
+await llm.acall("...")               # async
+llm.map(prompts, concurrency=8)      # many prompts at once, in order
+llm.extract(Invoice, text)           # structured output (validated Pydantic)
+llm.chat()                           # multi-turn, keeps history
+llm.agent(system="...").run("...")   # tool-calling loop
+llm.judge(output, criteria="...")    # LLM-as-judge score
+llm.evaluate(cases)                  # run + grade a test set
 ```
 
-A few more things sit behind opt-in extras: OpenTelemetry traces that include the
-per-call dollar cost (most setups leave that out), Langfuse-backed prompts,
-semantic cascade escalation, and exact-match caching. The hard parts are already
-wired; you just call them.
+Also there, all opt-in: `llm.embed(...)`, routing (`Router` and `Cascade`),
+OpenTelemetry traces with the per-call dollar cost, Langfuse-backed prompts, and
+exact-match caching. Runnable versions of everything are in the
+[cookbook](examples/).
 
 Runnable recipes: **[cookbook](examples/)**
 
