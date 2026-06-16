@@ -375,3 +375,34 @@ def test_agent_respects_max_steps(monkeypatch):
         return "ok"
 
     assert "max_steps" in agent.run("loop forever")
+
+
+# --- batch + embeddings -------------------------------------------------------
+def test_map_runs_prompts_in_order(monkeypatch):
+    import litellm
+
+    async def fake_acompletion(model, messages, **kw):
+        return _Resp(content="ok:" + messages[-1]["content"])
+
+    monkeypatch.setattr(litellm, "acompletion", fake_acompletion)
+    out = LLM("openai/gpt-4o", compress=False, cache="off").map(
+        ["a", "b", "c"], concurrency=2
+    )
+    assert out == ["ok:a", "ok:b", "ok:c"]  # order preserved
+
+
+def test_embed_returns_vectors(monkeypatch):
+    import litellm
+
+    def fake_embedding(model, input, **kw):
+        return type("R", (), {"data": [{"embedding": [0.1, 0.2]} for _ in input]})()
+
+    monkeypatch.setattr(litellm, "embedding", fake_embedding)
+    llm = LLM("openai/gpt-4o")
+    assert llm.embed(["a", "b"]) == [[0.1, 0.2], [0.1, 0.2]]
+    assert llm.embed("solo") == [0.1, 0.2]  # string in -> single vector out
+
+
+def test_embed_requires_model_for_unknown_provider():
+    with pytest.raises(ValueError):
+        LLM("groq/llama-3.1-8b-instant").embed(["x"])

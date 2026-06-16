@@ -13,6 +13,12 @@ from .reliability import RetryPolicy, awith_fallback, with_fallback
 
 _VALID_CACHE = {"prompt", "exact", "off"}
 
+# Sensible default embedding model per provider; pass model= for anything else.
+_DEFAULT_EMBED_MODELS = {
+    "openai": "text-embedding-3-small",
+    "google": "text-embedding-004",
+}
+
 _NEEDS_STRUCTURED = (
     "extract() needs instructor + litellm. Install with:\n"
     "    pip install 'justllm[structured]'"
@@ -174,6 +180,53 @@ class LLM:
         return await awith_fallback(
             [caller(m) for m in self._chain_for(prompt)], policy=self.retry
         )
+
+    # -- batch -----------------------------------------------------------------
+    async def amap(
+        self, prompts: Sequence[str], *, concurrency: int = 8, **kwargs: Any
+    ) -> List[str]:
+        """Run many prompts concurrently, bounded by `concurrency`, in order."""
+        import asyncio
+
+        sem = asyncio.Semaphore(concurrency)
+
+        async def one(prompt: str) -> str:
+            async with sem:
+                return await self.acall(prompt, **kwargs)
+
+        return await asyncio.gather(*(one(p) for p in prompts))
+
+    def map(
+        self, prompts: Sequence[str], *, concurrency: int = 8, **kwargs: Any
+    ) -> List[str]:
+        """Sync wrapper over `amap`. Inside an event loop, await `amap` instead."""
+        import asyncio
+
+        return asyncio.run(self.amap(prompts, concurrency=concurrency, **kwargs))
+
+    # -- embeddings ------------------------------------------------------------
+    def embed(self, texts: "str | Sequence[str]", *, model: Optional[str] = None):
+        """Embed text. Returns one vector for a string, a list of vectors for a list.
+
+        Uses an embedding model, not the chat model. Defaults to a sensible one
+        for OpenAI/Google; pass `model=` for any other provider.
+        """
+        from .transports import _provider_of, _require_litellm
+
+        litellm = _require_litellm()
+        emb_model = model or _DEFAULT_EMBED_MODELS.get(
+            _provider_of(self.chain[0]) if self.chain else None
+        )
+        if emb_model is None:
+            raise ValueError(
+                "Specify an embedding model, e.g. "
+                "llm.embed(texts, model='openai/text-embedding-3-small')."
+            )
+        single = isinstance(texts, str)
+        inputs = [texts] if single else list(texts)
+        resp = litellm.embedding(model=emb_model, input=inputs)
+        vectors = [item["embedding"] for item in resp.data]
+        return vectors[0] if single else vectors
 
     # -- agent -----------------------------------------------------------------
     def agent(

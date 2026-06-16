@@ -32,6 +32,8 @@ Same three lines. Each of these is one call or one kwarg:
 llm.extract(Invoice, text)                    # structured output (validated Pydantic)
 llm.stream("...")                             # token streaming
 await llm.acall("...")                        # async
+llm.map(prompts, concurrency=8)               # many prompts at once, in order
+llm.embed(texts)                              # embeddings
 llm.agent(system="...").run("...")            # tool-calling loop
 LLM(router=Cascade(small=cheap, large=big))   # cheap first, escalate when needed
 ```

@@ -27,6 +27,7 @@ JUSTLLM_MODEL=ollama_chat/llama3.2:1b python examples/streaming.py
 | [basics.py](basics.py) | a call, a cross-provider fallback chain, caching |
 | [streaming.py](streaming.py) | token streaming with `llm.stream` |
 | [async_calls.py](async_calls.py) | `await llm.acall(...)` |
+| [batch.py](batch.py) | run many prompts at once with `llm.map(...)` |
 | [structured_output.py](structured_output.py) | `llm.extract(Model, ...)` → a validated Pydantic object |
 | [agent_with_tools.py](agent_with_tools.py) | a tool-calling agent loop |
 | [compression.py](compression.py) | shrink tool output before it hits the model (offline) |

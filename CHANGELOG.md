@@ -8,6 +8,16 @@ All notable changes to this project are documented here. The format is based on
 
 - See [ROADMAP.md](ROADMAP.md).
 
+## [0.5.0] — 2026-06-16
+
+### Added
+- `llm.map(prompts, concurrency=8)` (and async `amap`): run many prompts at once
+  with a bounded concurrency limit; results come back in order.
+- `llm.embed(texts)`: embeddings via LiteLLM (one vector for a string, a list for
+  a list). Defaults to a sensible embedding model for OpenAI/Google; pass `model=`
+  for others.
+- `py.typed` marker so type checkers (mypy, pyright) pick up the library's hints.
+
 ## [0.4.0] — 2026-06-16
 
 ### Added
@@ -95,7 +105,8 @@ All notable changes to this project are documented here. The format is based on
 - Initial release: reliability layer (`with_fallback`, `RetryPolicy`) and the
   Headroom-backed compression adapter (`compress`), plus the benchmark scaffold.
 
-[Unreleased]: https://github.com/robbiebusinessacc/justllm/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/robbiebusinessacc/justllm/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.5.0
 [0.4.0]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.4.0
 [0.3.2]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.3.2
 [0.3.1]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.3.1
