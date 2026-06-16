@@ -258,3 +258,20 @@ class LLM:
         from .chat import Chat
 
         return Chat(self, system=system)
+
+    # -- evaluation ------------------------------------------------------------
+    def judge(self, output: str, *, criteria: str, reference: Optional[str] = None,
+              scale: int = 5, **kwargs: Any):
+        """LLM-as-judge: grade one output against a criterion. Returns a Verdict."""
+        from .eval import judge as _judge
+
+        return _judge(self, output, criteria=criteria, reference=reference,
+                      scale=scale, **kwargs)
+
+    def evaluate(self, cases: Any, *, scorer: Optional[Any] = None, grader: Any = None,
+                 concurrency: int = 8, **kwargs: Any):
+        """Run and score a set of cases. Returns an EvalReport (pass rate + per-case)."""
+        from .eval import evaluate as _evaluate
+
+        return _evaluate(self, cases, scorer=scorer, grader=grader,
+                         concurrency=concurrency, **kwargs)

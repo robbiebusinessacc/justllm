@@ -38,6 +38,8 @@ llm.map(prompts, concurrency=8)               # many prompts at once, in order
 llm.embed(texts)                              # embeddings
 chat = llm.chat(); chat.send("..."); chat.send("...")   # multi-turn, remembers history
 llm.agent(system="...").run("...")            # tool-calling loop
+llm.judge(output, criteria="...")             # LLM-as-judge score
+llm.evaluate(cases)                           # run + grade a test set
 LLM(router=Cascade(small=cheap, large=big))   # cheap first, escalate when needed
 ```
 

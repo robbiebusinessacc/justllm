@@ -8,6 +8,20 @@ All notable changes to this project are documented here. The format is based on
 
 - See [ROADMAP.md](ROADMAP.md).
 
+## [0.7.0] — 2026-06-16
+
+### Added
+- Evaluation layer (LLM-as-judge), built on structured output — thin by design:
+  - `llm.judge(output, criteria=...)` returns a `Verdict` (reasoning, score,
+    pass/fail).
+  - `llm.evaluate(cases)` runs and grades a test set concurrently (reuses `map`):
+    the LLM judge by default, or a `scorer(output, case)` function for
+    programmatic checks; pass `grader=` to judge with a different model.
+  - `Verdict` and `EvalReport` live in `justllm.eval`. Needs `[structured]`.
+
+### Changed
+- CI type-check installs pydantic so mypy sees the eval models' types.
+
 ## [0.6.0] — 2026-06-16
 
 ### Added
@@ -119,7 +133,8 @@ All notable changes to this project are documented here. The format is based on
 - Initial release: reliability layer (`with_fallback`, `RetryPolicy`) and the
   Headroom-backed compression adapter (`compress`), plus the benchmark scaffold.
 
-[Unreleased]: https://github.com/robbiebusinessacc/justllm/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/robbiebusinessacc/justllm/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.7.0
 [0.6.0]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.6.0
 [0.5.0]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.5.0
 [0.4.0]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.4.0

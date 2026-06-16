@@ -14,7 +14,7 @@ from .compress import CompressionResult, compress
 from .reliability import RetryPolicy, awith_fallback, with_fallback
 from .router import Cascade, Router, embedding_escalator
 
-__version__ = "0.6.0"
+__version__ = "0.7.0"
 __all__ = [
     "LLM",
     "Agent",

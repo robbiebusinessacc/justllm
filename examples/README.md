@@ -31,6 +31,7 @@ JUSTLLM_MODEL=ollama_chat/llama3.2:1b python examples/streaming.py
 | [chat.py](chat.py) | a multi-turn conversation that remembers history |
 | [structured_output.py](structured_output.py) | `llm.extract(Model, ...)` → a validated Pydantic object |
 | [agent_with_tools.py](agent_with_tools.py) | a tool-calling agent loop |
+| [evaluate.py](evaluate.py) | LLM-as-judge scoring and test-set evaluation |
 | [compression.py](compression.py) | shrink tool output before it hits the model (offline) |
 | [routing.py](routing.py) | length-based `Router` and cheap-first `Cascade` |
 | [prompts.py](prompts.py) | file loader, hot-reload, and a Langfuse adapter (offline) |

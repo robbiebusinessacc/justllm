@@ -436,3 +436,51 @@ def test_chat_reset_keeps_system(monkeypatch):
     chat.send("hi")
     chat.reset()
     assert chat.messages == [{"role": "system", "content": "sys"}]
+
+
+# --- evaluation ---------------------------------------------------------------
+def test_judge_returns_verdict(monkeypatch):
+    import instructor
+
+    class _FakeClient:
+        class chat:
+            class completions:
+                @staticmethod
+                def create(model, messages, response_model, **kw):
+                    return response_model(reasoning="correct", score=5, passed=True)
+
+    monkeypatch.setattr(instructor, "from_litellm", lambda *a, **k: _FakeClient())
+    verdict = LLM("openai/gpt-4o", compress=False).judge(
+        "Paris", criteria="Is this the capital of France?"
+    )
+    assert verdict.passed is True
+    assert verdict.score == 5
+
+
+def test_evaluate_with_custom_scorer_no_llm():
+    cases = [
+        {"output": "Paris", "expected": "Paris"},
+        {"output": "London", "expected": "Paris"},
+    ]
+    report = LLM("openai/gpt-4o").evaluate(
+        cases, scorer=lambda out, case: out == case["expected"]
+    )
+    assert report.pass_rate == 0.5
+    assert [r.passed for r in report.results] == [True, False]
+
+
+def test_evaluate_generates_then_scores(monkeypatch):
+    import litellm
+
+    async def fake_acompletion(model, messages, **kw):
+        return _Resp(content="gen:" + messages[-1]["content"])
+
+    monkeypatch.setattr(litellm, "acompletion", fake_acompletion)
+    cases = [
+        {"input": "q1", "expected": "gen:q1"},  # will be generated, then matched
+        {"input": "q2", "expected": "wrong"},
+    ]
+    report = LLM("openai/gpt-4o", compress=False, cache="off").evaluate(
+        cases, scorer=lambda out, case: out == case["expected"]
+    )
+    assert report.pass_rate == 0.5
