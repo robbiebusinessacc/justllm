@@ -1,25 +1,33 @@
 #!/usr/bin/env python3
 """Generate an asciicast demo of justllm — no screen recording involved.
 
-This writes assets/demo.cast (asciicast v2). Render it to a GIF with agg
+Writes assets/demo.cast (asciicast v2). Render to a GIF with agg
 (https://github.com/asciinema/agg):
 
     python scripts/gen_demo.py
     agg --theme monokai assets/demo.cast assets/demo.gif
 
-The outputs shown are real results observed while testing (Paris, the 81%
+The outputs shown are real results observed while testing (Paris, the ~81%
 compression on an 80-row JSON tool result, the map order). Edit this script and
-re-render to change the demo; nothing here is hand-recorded.
+re-render to change pacing or content; nothing here is hand-recorded.
+
+Pacing knobs: CHAR_DT (typing speed), PAUSE (wait after each command), END_HOLD
+(final freeze). HEIGHT is set to the line count so there's no empty space below.
 """
 import json
 import os
 
-WIDTH, HEIGHT = 86, 22
-GREEN = "[32m"
-BLUE = "[34m"
-YELLOW = "[33m"
-GREY = "[90m"
-RESET = "[0m"
+WIDTH, HEIGHT = 82, 13
+CHAR_DT = 0.02   # per-character typing delay
+PAUSE = 0.25     # wait after a command's newline
+END_HOLD = 1.0   # final freeze before the GIF loops
+
+ESC = "\x1b"
+GREEN = ESC + "[32m"
+BLUE = ESC + "[34m"
+YELLOW = ESC + "[33m"
+GREY = ESC + "[90m"
+RESET = ESC + "[0m"
 SH = f"{GREEN}${RESET} "
 PY = f"{BLUE}>>>{RESET} "
 
@@ -27,47 +35,44 @@ events: list = []
 t = 0.0
 
 
-def emit(text: str, dt: float = 0.4) -> None:
+def emit(text: str, dt: float = 0.25) -> None:
     global t
     t += dt
     events.append([round(t, 3), "o", text])
 
 
-def type_cmd(prompt: str, text: str, char_dt: float = 0.035, pause: float = 0.5) -> None:
+def type_cmd(prompt: str, text: str) -> None:
     global t
-    emit(prompt, 0.35)
+    emit(prompt, 0.18)
     for ch in text:
-        t += char_dt
+        t += CHAR_DT
         events.append([round(t, 3), "o", ch])
-    t += 0.25
+    t += 0.1
     events.append([round(t, 3), "o", "\r\n"])
-    t += pause
+    t += PAUSE
 
 
-def show(text: str, dt: float = 0.45) -> None:
-    emit(text + "\r\n", dt)
+def show(text: str) -> None:
+    emit(text + "\r\n", 0.28)
 
 
-emit(f"{GREY}# justllm: production LLM calls in three lines{RESET}\r\n", 0.6)
+emit(f"{GREY}# justllm: production LLM calls in three lines{RESET}\r\n", 0.4)
 type_cmd(SH, "python")
-show(f"{GREY}Python 3.12 | justllm 0.5.0{RESET}", 0.3)
+show(f"{GREY}Python 3.12 | justllm 0.5.0{RESET}")
 
 type_cmd(PY, "from justllm import LLM, compress")
 type_cmd(PY, 'llm = LLM("anthropic/claude-opus-4-8")')
 type_cmd(PY, 'llm("In one word, the capital of France?")')
 show(f"{YELLOW}'Paris.'{RESET}")
 
-type_cmd(PY, f"{GREY}# shrink a bulky tool result before it hits the model{RESET}")
 type_cmd(PY, "compress(tool_output, model='gpt-4o').pct_saved")
 show(f"{YELLOW}81.4{RESET}   {GREY}# 1369 -> 255 tokens{RESET}")
 
-type_cmd(PY, f"{GREY}# fan many prompts out at once, bounded, in order{RESET}")
 type_cmd(PY, "llm.map(prompts, concurrency=8)")
 show(f"{YELLOW}['Tokyo', 'Rome', 'Madrid', 'Cairo']{RESET}")
 
-emit(f"\r\n{GREY}# fallback, caching, and compression: all on by default{RESET}\r\n", 0.7)
-emit(f"{GREY}# pip install 'justllm[all]'{RESET}\r\n", 0.6)
-t += 2.0
+emit(f"{GREY}# fallback, caching, and compression are all on by default{RESET}\r\n", 0.5)
+t += END_HOLD
 events.append([round(t, 3), "o", ""])
 
 header = {
