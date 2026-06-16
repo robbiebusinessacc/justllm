@@ -14,29 +14,39 @@ llm = LLM("anthropic/claude-opus-4-8")
 llm("Summarize this contract.")
 ```
 
-Cross-provider fallback, prompt-cache optimization, and context compression are
-**on by default**. No config. Outgrow it? Drop down to LiteLLM.
+That one call already does what you'd normally wire by hand — **on by default,
+zero config:**
+
+- **Context compression** — [Headroom](https://github.com/chopratejas/headroom) shrinks tool output 50–95% before it reaches the model
+- **Prompt-cache optimization** — provider-optimal cache breakpoints (Anthropic / OpenAI / Google)
+- **Reliability** — retry with backoff, then fail over across providers
 
 ```bash
 pip install 'justllm[all]'
 ```
 
-## A little more
+## More, when you want it
+
+Same three-line surface — each of these is one call or one kwarg:
 
 ```python
-llm.extract(Invoice, text)                   # validated Pydantic, not a string
-llm.stream("...")                            # token streaming
-await llm.acall("...")                       # async
-llm.agent(system="...").run("...")           # tool-calling loop
-LLM(router=Cascade(small=cheap, large=big))  # cheap first, escalate when needed
+llm.extract(Invoice, text)                    # structured output (validated Pydantic)
+llm.stream("...")                             # token streaming
+await llm.acall("...")                        # async
+llm.agent(system="...").run("...")            # tool-calling loop
+LLM(router=Cascade(small=cheap, large=big))   # cheap first, escalate when needed
 ```
+
+Plus OpenTelemetry tracing with the per-call **cost** the spec omits (`[otel]`),
+Langfuse-backed prompts, exact-match caching — all opt-in. The point: every one
+of these is SOTA under the hood and a one-liner on top.
 
 Runnable recipes for all of it: **[cookbook →](examples/)**
 
 ## Why
 
 The ecosystem is split: powerful but heavy (LiteLLM, LangChain), or simple but
-thin (aisuite, any-llm). justllm is the middle — production defaults behind a
+thin (aisuite, any-llm). justllm is the middle — every optimization on, behind a
 three-line surface. The discipline *is* the product.
 
 ---
