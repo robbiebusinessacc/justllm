@@ -22,7 +22,7 @@ def main() -> None:
     provider.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
     trace.set_tracer_provider(provider)
 
-    # Pricing the OTel spec omits — override with your real rates.
+    # Pricing the OTel spec leaves out. Override these with your real rates.
     observability.set_prices({"llama-3.1-8b-instant": (0.05, 0.08)})
 
     LLM(MODEL)("In one word, the capital of Italy?")

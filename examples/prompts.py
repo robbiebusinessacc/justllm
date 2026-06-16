@@ -1,6 +1,6 @@
 """Prompts: load templates from files, hot-reload them, or pull from a registry.
 
-No API call — this just shows the loader seam. Only the variables you pass are
+No API call; this just shows the loader seam. Only the variables you pass get
 substituted, so literal braces (JSON, code) survive.
 """
 import os

@@ -1,6 +1,6 @@
 """Compression: shrink bulky tool output before it reaches the model.
 
-No API call — this just runs Headroom over a tool message and reports the saving.
+No API call; this just runs Headroom over a tool message and reports what it saved.
 For real numbers: `pip install 'justllm[compression,benchmarks]'` (tiktoken gives
 accurate token counts; without it, an estimate is used).
 """
@@ -10,7 +10,7 @@ from justllm import compress
 
 
 def main() -> None:
-    # A verbose tool result — the kind of thing that bloats agent context.
+    # A verbose tool result, the kind of thing that bloats agent context.
     tool_output = json.dumps(
         {"users": [{"id": i, "name": f"user{i}", "active": True} for i in range(80)]},
         indent=2,

@@ -14,20 +14,19 @@ llm = LLM("anthropic/claude-opus-4-8")
 llm("Summarize this contract.")
 ```
 
-That one call already does what you'd normally wire by hand — **on by default,
-zero config:**
+That call already does the work you'd normally wire up yourself, on by default:
 
-- **Context compression** — [Headroom](https://github.com/chopratejas/headroom) shrinks tool output 50–95% before it reaches the model
-- **Prompt-cache optimization** — provider-optimal cache breakpoints (Anthropic / OpenAI / Google)
-- **Reliability** — retry with backoff, then fail over across providers
+- **Context compression.** [Headroom](https://github.com/chopratejas/headroom) shrinks tool output by 50–95% before it reaches the model.
+- **Prompt-cache optimization.** Cache breakpoints go where each provider wants them (Anthropic, OpenAI, Google).
+- **Reliability.** Calls retry with backoff, then fail over to the next provider.
 
 ```bash
 pip install 'justllm[all]'
 ```
 
-## More, when you want it
+## A little more
 
-Same three-line surface — each of these is one call or one kwarg:
+Same three lines. Each of these is one call or one kwarg:
 
 ```python
 llm.extract(Invoice, text)                    # structured output (validated Pydantic)
@@ -37,17 +36,19 @@ llm.agent(system="...").run("...")            # tool-calling loop
 LLM(router=Cascade(small=cheap, large=big))   # cheap first, escalate when needed
 ```
 
-Plus OpenTelemetry tracing with the per-call **cost** the spec omits (`[otel]`),
-Langfuse-backed prompts, semantic cascade escalation, exact-match caching — all
-opt-in. The point: every one of these is SOTA under the hood and a one-liner on top.
+A few more things sit behind opt-in extras: OpenTelemetry traces that include the
+per-call dollar cost (most setups leave that out), Langfuse-backed prompts,
+semantic cascade escalation, and exact-match caching. The hard parts are already
+wired; you just call them.
 
-Runnable recipes for all of it: **[cookbook →](examples/)**
+Runnable recipes: **[cookbook](examples/)**
 
 ## Why
 
-The ecosystem is split: powerful but heavy (LiteLLM, LangChain), or simple but
-thin (aisuite, any-llm). justllm is the middle — every optimization on, behind a
-three-line surface. The discipline *is* the product.
+The ecosystem splits two ways. You can have powerful but heavy (LiteLLM,
+LangChain), or simple but thin (aisuite, any-llm). justllm sits in the middle:
+every optimization is on, and the surface stays at three lines. Keeping it that
+small was most of the work.
 
 | | justllm | LiteLLM | aisuite |
 |---|---|---|---|
@@ -59,11 +60,12 @@ three-line surface. The discipline *is* the product.
 | tool-calling agent | yes (minimal) | no | no |
 | surface area | tiny | large | tiny |
 
-justllm builds *on* LiteLLM for transport — it's the opinionated layer on top,
-not a replacement for it.
+It runs on LiteLLM underneath, so think of it as the opinionated layer on top
+rather than a replacement.
 
 ---
 
-*Alpha. Wiring is tested on CI (Python 3.10–3.13); call paths are validated live.*
+*Alpha. The wiring is tested on CI (Python 3.10–3.13) and the call paths are
+checked against live models.*
 
 [Cookbook](examples/) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [MIT](LICENSE)

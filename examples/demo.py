@@ -1,4 +1,4 @@
-"""A 30-second tour of justllm — nice for a screen recording or asciinema.
+"""A 30-second tour of justllm, good for a screen recording or asciinema.
 
     JUSTLLM_MODEL=ollama_chat/llama3.2:1b python examples/demo.py
     # or: GROQ_API_KEY=gsk_... JUSTLLM_MODEL=groq/llama-3.1-8b-instant python examples/demo.py
@@ -15,7 +15,7 @@ MODEL = os.getenv("JUSTLLM_MODEL", "openai/gpt-4o")
 
 
 def main() -> None:
-    print("justllm — production LLM calls in three lines\n")
+    print("justllm: production LLM calls in three lines\n")
 
     llm = LLM(MODEL)
     print(">>> llm('In one word, the capital of France?')")

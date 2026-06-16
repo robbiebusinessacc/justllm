@@ -1,7 +1,7 @@
 # justllm cookbook
 
-Short, runnable recipes. Each file stands alone and is guarded by
-`if __name__ == "__main__"`, so you can run any of them directly.
+Short, self-contained recipes. Each file runs on its own, so grab whichever one
+matches what you're trying to do.
 
 ## Running
 
@@ -34,6 +34,6 @@ JUSTLLM_MODEL=ollama_chat/llama3.2:1b python examples/streaming.py
 | [prompts.py](prompts.py) | file loader, hot-reload, and a Langfuse adapter (offline) |
 | [observability.py](observability.py) | OpenTelemetry spans with per-call cost |
 
-Capability notes: `structured_output` and `agent_with_tools` need a reasonably
-capable model (tiny local models can't do structured output or tool calls
-reliably). `compression` and `prompts` make no API calls.
+Two caveats. `structured_output` and `agent_with_tools` need a reasonably capable
+model; the tiny local ones won't handle structured output or tool calls well.
+`compression` and `prompts` don't call any API, so they run anywhere.
