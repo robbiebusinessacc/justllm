@@ -49,6 +49,19 @@ The ecosystem is split: powerful but heavy (LiteLLM, LangChain), or simple but
 thin (aisuite, any-llm). justllm is the middle — every optimization on, behind a
 three-line surface. The discipline *is* the product.
 
+| | justllm | LiteLLM | aisuite |
+|---|---|---|---|
+| three-line call | yes | yes | yes |
+| cross-provider fallback | on by default | config | no |
+| context compression | on by default (Headroom) | manual trim | no |
+| prompt-cache optimization | on by default | passthrough | no |
+| structured output | yes (instructor) | passthrough | no |
+| tool-calling agent | yes (minimal) | no | no |
+| surface area | tiny | large | tiny |
+
+justllm builds *on* LiteLLM for transport — it's the opinionated layer on top,
+not a replacement for it.
+
 ---
 
 *Alpha. Wiring is tested on CI (Python 3.10–3.13); call paths are validated live.*

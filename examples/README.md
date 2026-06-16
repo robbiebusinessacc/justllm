@@ -23,6 +23,7 @@ JUSTLLM_MODEL=ollama_chat/llama3.2:1b python examples/streaming.py
 
 | File | Shows |
 |---|---|
+| [demo.py](demo.py) | a 30-second tour (call + compression + streaming), recording-ready |
 | [basics.py](basics.py) | a call, a cross-provider fallback chain, caching |
 | [streaming.py](streaming.py) | token streaming with `llm.stream` |
 | [async_calls.py](async_calls.py) | `await llm.acall(...)` |
