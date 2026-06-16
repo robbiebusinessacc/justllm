@@ -406,3 +406,33 @@ def test_embed_returns_vectors(monkeypatch):
 def test_embed_requires_model_for_unknown_provider():
     with pytest.raises(ValueError):
         LLM("groq/llama-3.1-8b-instant").embed(["x"])
+
+
+# --- chat (multi-turn) --------------------------------------------------------
+def test_chat_keeps_history_across_turns(monkeypatch):
+    seen = {}
+
+    def fake(model, messages, **kw):
+        seen["messages"] = list(messages)  # snapshot what the 2nd turn sent
+        return _Resp(content="reply")
+
+    _patch_completion(monkeypatch, fake)
+    chat = LLM("openai/gpt-4o", compress=False, cache="off").chat(system="be brief")
+    chat.send("first")
+    chat.send("second")
+
+    roles = [m["role"] for m in seen["messages"]]
+    assert roles == ["system", "user", "assistant", "user"]  # history carried forward
+    assert seen["messages"][-1]["content"] == "second"
+    # the object holds the full transcript
+    assert [m["role"] for m in chat.messages] == [
+        "system", "user", "assistant", "user", "assistant"
+    ]
+
+
+def test_chat_reset_keeps_system(monkeypatch):
+    _patch_completion(monkeypatch, lambda model, messages, **kw: _Resp(content="ok"))
+    chat = LLM("openai/gpt-4o", compress=False, cache="off").chat(system="sys")
+    chat.send("hi")
+    chat.reset()
+    assert chat.messages == [{"role": "system", "content": "sys"}]

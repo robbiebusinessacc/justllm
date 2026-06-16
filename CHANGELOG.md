@@ -6,10 +6,21 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
-- CI now type-checks the package with mypy (closes the gap of shipping `py.typed`
-  without verifying the hints). Fixed two internal type issues found by it; no
-  behavior or public-API change.
 - See [ROADMAP.md](ROADMAP.md).
+
+## [0.6.0] — 2026-06-16
+
+### Added
+- `llm.chat(system=...)` returns a `Chat` that remembers history across turns:
+  `chat.send(...)`, async `chat.asend(...)`, streaming `chat.stream(...)`, and
+  `chat.reset()`. Same defaults as the client (fallback, caching, compression,
+  routing). No more hand-managing a `messages` list for back-and-forth.
+
+### Changed
+- CI now type-checks with mypy (so `py.typed` is backed by a real check). Fixed
+  two internal type issues; no behavior or public-API change.
+- Refactored single-call and chat paths onto one shared engine; behavior of
+  existing calls is unchanged.
 
 ## [0.5.0] — 2026-06-16
 
@@ -108,7 +119,8 @@ All notable changes to this project are documented here. The format is based on
 - Initial release: reliability layer (`with_fallback`, `RetryPolicy`) and the
   Headroom-backed compression adapter (`compress`), plus the benchmark scaffold.
 
-[Unreleased]: https://github.com/robbiebusinessacc/justllm/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/robbiebusinessacc/justllm/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.6.0
 [0.5.0]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.5.0
 [0.4.0]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.4.0
 [0.3.2]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.3.2

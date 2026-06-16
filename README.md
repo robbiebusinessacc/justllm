@@ -36,6 +36,7 @@ llm.stream("...")                             # token streaming
 await llm.acall("...")                        # async
 llm.map(prompts, concurrency=8)               # many prompts at once, in order
 llm.embed(texts)                              # embeddings
+chat = llm.chat(); chat.send("..."); chat.send("...")   # multi-turn, remembers history
 llm.agent(system="...").run("...")            # tool-calling loop
 LLM(router=Cascade(small=cheap, large=big))   # cheap first, escalate when needed
 ```

@@ -80,11 +80,16 @@ class LLM:
     def _chain_for(self, prompt: str) -> List[str]:
         return [self._primary_model(prompt)] if self.router is not None else self.chain
 
-    # -- sync ------------------------------------------------------------------
-    def __call__(self, prompt: str, **kwargs: Any) -> str:
+    def _reply(self, messages: List[dict], route_key: str, **kwargs: Any) -> str:
+        """The shared sync engine: compress, then route or fall back over a chain.
+
+        Takes a full message list (so single calls and multi-turn chat share it)
+        and a route_key (the latest user text) for routing decisions.
+        """
         from .transports import complete
 
-        messages = self._prepare(prompt)
+        if self.compress:
+            messages = _compress(messages).messages
 
         def run(model: str) -> str:
             return complete(model, messages, cache=self.cache, **kwargs)
@@ -93,12 +98,16 @@ class LLM:
             def routed(model: str) -> str:
                 return with_fallback([lambda: run(model)], policy=self.retry)
 
-            return self.router.route(prompt, routed)
+            return self.router.route(route_key, routed)
 
         def caller(model: str) -> Callable[[], str]:
             return lambda: run(model)
 
         return with_fallback([caller(m) for m in self.chain], policy=self.retry)
+
+    # -- sync ------------------------------------------------------------------
+    def __call__(self, prompt: str, **kwargs: Any) -> str:
+        return self._reply([{"role": "user", "content": prompt}], prompt, **kwargs)
 
     def stream(self, prompt: str, **kwargs: Any) -> Iterator[str]:
         """Yield text chunks. Streams from the routed/primary model (no mid-stream
@@ -137,10 +146,11 @@ class LLM:
         )
 
     # -- async -----------------------------------------------------------------
-    async def acall(self, prompt: str, **kwargs: Any) -> str:
+    async def _areply(self, messages: List[dict], route_key: str, **kwargs: Any) -> str:
         from .transports import acomplete
 
-        messages = self._prepare(prompt)
+        if self.compress:
+            messages = _compress(messages).messages
 
         def caller(model: str):
             async def call():
@@ -152,11 +162,12 @@ class LLM:
             async def arun(model: str):
                 return await awith_fallback([caller(model)], policy=self.retry)
 
-            return await self.router.aroute(prompt, arun)
+            return await self.router.aroute(route_key, arun)
 
-        return await awith_fallback(
-            [caller(m) for m in self.chain], policy=self.retry
-        )
+        return await awith_fallback([caller(m) for m in self.chain], policy=self.retry)
+
+    async def acall(self, prompt: str, **kwargs: Any) -> str:
+        return await self._areply([{"role": "user", "content": prompt}], prompt, **kwargs)
 
     async def aextract(self, schema: Type, prompt: str, **kwargs: Any):
         try:
@@ -241,3 +252,9 @@ class LLM:
         from .agent import Agent
 
         return Agent(self, system=system, max_steps=max_steps, tools=tools)
+
+    def chat(self, *, system: Optional[str] = None):
+        """A multi-turn conversation that remembers history across turns."""
+        from .chat import Chat
+
+        return Chat(self, system=system)
