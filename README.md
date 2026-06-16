@@ -139,6 +139,13 @@ Measures token/cost savings from compression, the overhead the layer adds, and
 that fallback actually recovers provider failures. The suite runs even without
 the optional deps (using fallbacks), so it is never a hard blocker.
 
+## Cookbook
+
+Runnable recipes live in [`examples/`](examples/) — basics, streaming, async,
+structured output, agents, compression, routing, prompts, and observability.
+Each file stands alone; point it at any model via `JUSTLLM_MODEL` (including a
+free local Ollama model).
+
 ## Contributing
 
 Contributions are very welcome — the goal is to stay **SOTA and easy to use** at

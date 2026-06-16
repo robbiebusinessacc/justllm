@@ -6,6 +6,9 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+- Cookbook: runnable recipes in `examples/` (basics, streaming, async, structured
+  output, agents, compression, routing, prompts, observability), with a CI check
+  that keeps them compiling. Docs only — not part of the published package.
 - See [ROADMAP.md](ROADMAP.md).
 
 ## [0.3.2] — 2026-06-15
