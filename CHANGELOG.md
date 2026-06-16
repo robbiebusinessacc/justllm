@@ -6,6 +6,9 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+- CI now type-checks the package with mypy (closes the gap of shipping `py.typed`
+  without verifying the hints). Fixed two internal type issues found by it; no
+  behavior or public-API change.
 - See [ROADMAP.md](ROADMAP.md).
 
 ## [0.5.0] — 2026-06-16

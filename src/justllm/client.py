@@ -6,7 +6,7 @@ fallback. Routing is opt-in via a `Router`.
 """
 from __future__ import annotations
 
-from typing import Any, Iterator, List, Optional, Sequence, Type
+from typing import Any, Callable, Iterator, List, Optional, Sequence, Type
 
 from .compress import compress as _compress
 from .reliability import RetryPolicy, awith_fallback, with_fallback
@@ -90,13 +90,15 @@ class LLM:
             return complete(model, messages, cache=self.cache, **kwargs)
 
         if self.router is not None:
-            return self.router.route(
-                prompt, lambda model: with_fallback([lambda: run(model)], policy=self.retry)
-            )
+            def routed(model: str) -> str:
+                return with_fallback([lambda: run(model)], policy=self.retry)
 
-        return with_fallback(
-            [lambda m=m: run(m) for m in self.chain], policy=self.retry
-        )
+            return self.router.route(prompt, routed)
+
+        def caller(model: str) -> Callable[[], str]:
+            return lambda: run(model)
+
+        return with_fallback([caller(m) for m in self.chain], policy=self.retry)
 
     def stream(self, prompt: str, **kwargs: Any) -> Iterator[str]:
         """Yield text chunks. Streams from the routed/primary model (no mid-stream
@@ -214,9 +216,8 @@ class LLM:
         from .transports import _provider_of, _require_litellm
 
         litellm = _require_litellm()
-        emb_model = model or _DEFAULT_EMBED_MODELS.get(
-            _provider_of(self.chain[0]) if self.chain else None
-        )
+        provider = _provider_of(self.chain[0]) if self.chain else None
+        emb_model = model or (_DEFAULT_EMBED_MODELS.get(provider) if provider else None)
         if emb_model is None:
             raise ValueError(
                 "Specify an embedding model, e.g. "

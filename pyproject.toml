@@ -49,7 +49,7 @@ all = [
     "opentelemetry-sdk>=1.20",
     "fastembed>=0.3",
 ]
-dev = ["build", "twine", "pytest"]
+dev = ["build", "twine", "pytest", "mypy"]
 
 [project.urls]
 Homepage = "https://github.com/robbiebusinessacc/justllm"
@@ -70,3 +70,8 @@ ignore = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.mypy]
+files = ["src/justllm"]
+python_version = "3.10"
+ignore_missing_imports = true
