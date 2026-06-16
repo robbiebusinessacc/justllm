@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+"""Generate an asciicast demo of justllm — no screen recording involved.
+
+This writes assets/demo.cast (asciicast v2). Render it to a GIF with agg
+(https://github.com/asciinema/agg):
+
+    python scripts/gen_demo.py
+    agg --theme monokai assets/demo.cast assets/demo.gif
+
+The outputs shown are real results observed while testing (Paris, the 81%
+compression on an 80-row JSON tool result, the map order). Edit this script and
+re-render to change the demo; nothing here is hand-recorded.
+"""
+import json
+import os
+
+WIDTH, HEIGHT = 86, 22
+GREEN = "[32m"
+BLUE = "[34m"
+YELLOW = "[33m"
+GREY = "[90m"
+RESET = "[0m"
+SH = f"{GREEN}${RESET} "
+PY = f"{BLUE}>>>{RESET} "
+
+events: list = []
+t = 0.0
+
+
+def emit(text: str, dt: float = 0.4) -> None:
+    global t
+    t += dt
+    events.append([round(t, 3), "o", text])
+
+
+def type_cmd(prompt: str, text: str, char_dt: float = 0.035, pause: float = 0.5) -> None:
+    global t
+    emit(prompt, 0.35)
+    for ch in text:
+        t += char_dt
+        events.append([round(t, 3), "o", ch])
+    t += 0.25
+    events.append([round(t, 3), "o", "\r\n"])
+    t += pause
+
+
+def show(text: str, dt: float = 0.45) -> None:
+    emit(text + "\r\n", dt)
+
+
+emit(f"{GREY}# justllm: production LLM calls in three lines{RESET}\r\n", 0.6)
+type_cmd(SH, "python")
+show(f"{GREY}Python 3.12 | justllm 0.5.0{RESET}", 0.3)
+
+type_cmd(PY, "from justllm import LLM, compress")
+type_cmd(PY, 'llm = LLM("anthropic/claude-opus-4-8")')
+type_cmd(PY, 'llm("In one word, the capital of France?")')
+show(f"{YELLOW}'Paris.'{RESET}")
+
+type_cmd(PY, f"{GREY}# shrink a bulky tool result before it hits the model{RESET}")
+type_cmd(PY, "compress(tool_output, model='gpt-4o').pct_saved")
+show(f"{YELLOW}81.4{RESET}   {GREY}# 1369 -> 255 tokens{RESET}")
+
+type_cmd(PY, f"{GREY}# fan many prompts out at once, bounded, in order{RESET}")
+type_cmd(PY, "llm.map(prompts, concurrency=8)")
+show(f"{YELLOW}['Tokyo', 'Rome', 'Madrid', 'Cairo']{RESET}")
+
+emit(f"\r\n{GREY}# fallback, caching, and compression: all on by default{RESET}\r\n", 0.7)
+emit(f"{GREY}# pip install 'justllm[all]'{RESET}\r\n", 0.6)
+t += 2.0
+events.append([round(t, 3), "o", ""])
+
+header = {
+    "version": 2,
+    "width": WIDTH,
+    "height": HEIGHT,
+    "env": {"TERM": "xterm-256color", "SHELL": "/bin/zsh"},
+}
+
+os.makedirs("assets", exist_ok=True)
+with open("assets/demo.cast", "w", encoding="utf-8") as fh:
+    fh.write(json.dumps(header) + "\n")
+    for event in events:
+        fh.write(json.dumps(event) + "\n")
+
+print(f"wrote assets/demo.cast ({len(events)} events, {round(t, 1)}s)")

@@ -7,6 +7,8 @@
 
 **Production LLM calls. Just the three lines.**
 
+![justllm demo](assets/demo.gif)
+
 ```python
 from justllm import LLM
 
