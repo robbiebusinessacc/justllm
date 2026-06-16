@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "justllm"
-version = "0.3.2"
+version = "0.4.0"
 description = "Production LLM calls. Just the three lines. Reliability, native caching, and reversible context compression on by default."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -35,6 +35,8 @@ compression = ["headroom-ai>=0.25"]
 otel = ["opentelemetry-sdk>=1.20"]
 # Langfuse prompt-registry adapter for the prompt-loader seam.
 langfuse = ["langfuse>=2"]
+# Local embeddings (fastembed, ONNX) for embedding_escalator.
+embeddings = ["fastembed>=0.3"]
 # The benchmark suite (compression measurement needs tiktoken for token counts).
 benchmarks = ["tiktoken>=0.7", "headroom-ai>=0.25"]
 # Everything — the recommended install for the full "defaults on" experience.
@@ -44,6 +46,7 @@ all = [
     "headroom-ai>=0.25",
     "tiktoken>=0.7",
     "opentelemetry-sdk>=1.20",
+    "fastembed>=0.3",
 ]
 dev = ["build", "twine", "pytest"]
 

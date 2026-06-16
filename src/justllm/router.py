@@ -11,7 +11,8 @@ default):
 """
 from __future__ import annotations
 
-from typing import Any, Callable, Optional
+import math
+from typing import Any, Callable, Optional, Sequence
 
 _REFUSAL_MARKERS = (
     "i don't know",
@@ -91,3 +92,76 @@ class Cascade:
     async def aroute(self, prompt: str, arun: Callable[[str], Any]) -> Any:
         answer = await arun(self.small)
         return await arun(self.large) if self.escalate_if(answer) else answer
+
+
+# -- embedding-based escalation -----------------------------------------------
+
+_DEFAULT_UNCERTAINTY_EXEMPLARS = (
+    "I don't know the answer to that.",
+    "I'm not sure about this.",
+    "I cannot determine that from the given information.",
+    "It's unclear and I can't say for certain.",
+    "I'm unable to help with that request.",
+    "There isn't enough information to answer.",
+)
+
+
+def _cosine(a: Sequence[float], b: Sequence[float]) -> float:
+    dot = sum(x * y for x, y in zip(a, b, strict=True))
+    na = math.sqrt(sum(x * x for x in a))
+    nb = math.sqrt(sum(y * y for y in b))
+    return dot / (na * nb) if na and nb else 0.0
+
+
+def _fastembed_embedder() -> Callable[[Sequence[str]], list]:
+    from fastembed import TextEmbedding
+
+    model = TextEmbedding()  # bge-small, local ONNX (~30MB, downloaded once)
+
+    def embed(texts: Sequence[str]) -> list:
+        return [list(v) for v in model.embed(list(texts))]
+
+    return embed
+
+
+def _default_embedder() -> Callable[[Sequence[str]], list]:
+    try:
+        return _fastembed_embedder()
+    except Exception as exc:
+        raise RuntimeError(
+            "embedding_escalator needs an embedder. Install one with "
+            "`pip install 'justllm[embeddings]'`, or pass embed=your_own_fn."
+        ) from exc
+
+
+def embedding_escalator(
+    *,
+    embed: Optional[Callable[[Sequence[str]], list]] = None,
+    exemplars: Optional[Sequence[str]] = None,
+    threshold: float = 0.65,
+) -> Callable[[str], bool]:
+    """An escalation predicate for ``Cascade`` based on *semantic* uncertainty.
+
+    Embeds the cheap model's answer and escalates when it's semantically close to
+    a refusal / hedge / uncertainty exemplar — catching paraphrases the keyword
+    heuristic misses ("it's hard to say", "there isn't enough information"). It
+    detects *hedging*, not factual errors.
+
+    ``embed(texts) -> list[vector]`` defaults to fastembed (bge-small, local ONNX;
+    ships with the ``[embeddings]`` / ``[compression]`` extras). Raise ``threshold``
+    to escalate less. Use it as::
+
+        Cascade(small=cheap, large=big, escalate_if=embedding_escalator())
+    """
+    embed_fn = embed or _default_embedder()
+    exemplar_texts = list(exemplars) if exemplars else list(_DEFAULT_UNCERTAINTY_EXEMPLARS)
+    exemplar_vecs = embed_fn(exemplar_texts)
+
+    def escalate_if(answer: str) -> bool:
+        text = (answer or "").strip()
+        if len(text) < 2:
+            return True
+        vec = embed_fn([text])[0]
+        return max(_cosine(vec, ev) for ev in exemplar_vecs) >= threshold
+
+    return escalate_if

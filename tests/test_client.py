@@ -10,7 +10,7 @@ import asyncio
 
 import pytest
 
-from justllm import LLM, Cascade, RetryPolicy, Router, transports
+from justllm import LLM, Cascade, RetryPolicy, Router, embedding_escalator, transports
 from justllm import observability as obs
 
 
@@ -252,6 +252,36 @@ def test_cascade_custom_predicate(monkeypatch):
         cache="off",
     )("q")
     assert calls == ["m/small", "m/large"]  # predicate forces escalation
+
+
+def _fake_embed(texts):
+    # refusal/uncertainty words -> [1, 0]; everything else -> [0, 1]
+    markers = ("know", "sure", "unable", "can't", "cannot", "unclear", "enough")
+    return [
+        [1.0, 0.0] if any(w in t.lower() for w in markers) else [0.0, 1.0]
+        for t in texts
+    ]
+
+
+def test_embedding_escalator_detects_semantic_refusal():
+    escalate = embedding_escalator(embed=_fake_embed, threshold=0.9)
+    assert escalate("I really don't know, sorry.") is True  # near a refusal exemplar
+    assert escalate("The capital is Paris.") is False  # a real answer
+    assert escalate("") is True  # empty -> escalate
+
+
+def test_embedding_escalator_in_cascade(monkeypatch):
+    def fake(model, messages, **kw):
+        return _Resp(content="I don't know." if model == "m/small" else "Paris.")
+
+    _patch_completion(monkeypatch, fake)
+    cascade = Cascade(
+        small="m/small",
+        large="m/large",
+        escalate_if=embedding_escalator(embed=_fake_embed, threshold=0.9),
+    )
+    out = LLM(router=cascade, compress=False, cache="off")("q")
+    assert out == "Paris."  # cheap answer was a refusal -> escalated
 
 
 # --- observability ------------------------------------------------------------

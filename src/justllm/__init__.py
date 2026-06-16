@@ -11,14 +11,15 @@ from .agent import Agent
 from .client import LLM
 from .compress import CompressionResult, compress
 from .reliability import RetryPolicy, awith_fallback, with_fallback
-from .router import Cascade, Router
+from .router import Cascade, Router, embedding_escalator
 
-__version__ = "0.3.2"
+__version__ = "0.4.0"
 __all__ = [
     "LLM",
     "Agent",
     "Router",
     "Cascade",
+    "embedding_escalator",
     "RetryPolicy",
     "with_fallback",
     "awith_fallback",

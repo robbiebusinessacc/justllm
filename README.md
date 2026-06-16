@@ -38,8 +38,8 @@ LLM(router=Cascade(small=cheap, large=big))   # cheap first, escalate when neede
 ```
 
 Plus OpenTelemetry tracing with the per-call **cost** the spec omits (`[otel]`),
-Langfuse-backed prompts, exact-match caching — all opt-in. The point: every one
-of these is SOTA under the hood and a one-liner on top.
+Langfuse-backed prompts, semantic cascade escalation, exact-match caching — all
+opt-in. The point: every one of these is SOTA under the hood and a one-liner on top.
 
 Runnable recipes for all of it: **[cookbook →](examples/)**
 

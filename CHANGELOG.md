@@ -6,10 +6,19 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
-- Cookbook: runnable recipes in `examples/` (basics, streaming, async, structured
-  output, agents, compression, routing, prompts, observability), with a CI check
-  that keeps them compiling. Docs only — not part of the published package.
 - See [ROADMAP.md](ROADMAP.md).
+
+## [0.4.0] — 2026-06-16
+
+### Added
+- `embedding_escalator(...)`: an embedding-based escalation predicate for
+  `Cascade`. Escalates when the cheap model's answer is semantically close to a
+  refusal/hedge — catching paraphrases ("it's hard to say", "not enough
+  information") that the keyword heuristic misses. Defaults to local fastembed
+  (bge-small ONNX, no torch); `[embeddings]` extra. Detects hedging, not factual
+  errors.
+- Cookbook: runnable recipes in `examples/` with a CI compile check (docs only;
+  not part of the published package).
 
 ## [0.3.2] — 2026-06-15
 
@@ -86,7 +95,8 @@ All notable changes to this project are documented here. The format is based on
 - Initial release: reliability layer (`with_fallback`, `RetryPolicy`) and the
   Headroom-backed compression adapter (`compress`), plus the benchmark scaffold.
 
-[Unreleased]: https://github.com/robbiebusinessacc/justllm/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/robbiebusinessacc/justllm/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.4.0
 [0.3.2]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.3.2
 [0.3.1]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.3.1
 [0.3.0]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.3.0

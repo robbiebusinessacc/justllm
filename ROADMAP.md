@@ -38,8 +38,8 @@ absent; this is priority order, not a schedule. Ideas and PRs welcome — open a
   result on demand. Deferred from 0.3.0: Headroom exposes this through its
   proxy/MCP server, not the `compress()` library API, so it needs that mode (or a
   thin store) wired in before it fits the library cleanly.
-- **Cascade escalation v2** — optional embedding/classifier escalation signal
-  (still opt-in, still no surprise default).
+- **Quality routing (pre-call)** — RouteLLM-style classify-then-route on the
+  prompt, before any call (complements the post-answer `Cascade`). Opt-in.
 
 ## Later
 
