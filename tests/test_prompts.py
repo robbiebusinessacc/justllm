@@ -47,6 +47,53 @@ def test_custom_loader_overrides_files():
         prompts.set_loader(None)
 
 
+def test_file_loader_caches_then_hot_reloads(tmp_path):
+    import os
+
+    f = tmp_path / "p.txt"
+    f.write_text("v1 {x}")
+    reloads = []
+    prompts.set_loader(
+        prompts.file_loader(str(tmp_path), on_reload=lambda name, path: reloads.append(name))
+    )
+    try:
+        assert prompts.load("p", x="1") == "v1 1"
+        assert prompts.load("p", x="2") == "v1 2"  # served from cache
+        assert reloads == ["p"]  # read from disk only once
+
+        f.write_text("v2 {x}")
+        os.utime(f, (f.stat().st_atime, f.stat().st_mtime + 10))  # force newer mtime
+        assert prompts.load("p", x="3") == "v2 3"  # picked up the edit
+        assert reloads == ["p", "p"]  # reloaded exactly once more
+    finally:
+        prompts.set_loader(None)
+
+
+def test_file_loader_no_cache_always_rereads(tmp_path):
+    (tmp_path / "p.txt").write_text("a")
+    reloads = []
+    prompts.set_loader(
+        prompts.file_loader(
+            str(tmp_path), cache=False, on_reload=lambda name, path: reloads.append(name)
+        )
+    )
+    try:
+        prompts.load("p")
+        prompts.load("p")
+        assert reloads == ["p", "p"]
+    finally:
+        prompts.set_loader(None)
+
+
+def test_file_loader_missing_raises(tmp_path):
+    prompts.set_loader(prompts.file_loader(str(tmp_path)))
+    try:
+        with pytest.raises(FileNotFoundError):
+            prompts.load("nope")
+    finally:
+        prompts.set_loader(None)
+
+
 def test_langfuse_loader_with_injected_client():
     class _FakePrompt:
         def get_langchain_prompt(self):

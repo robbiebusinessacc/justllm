@@ -8,6 +8,14 @@ All notable changes to this project are documented here. The format is based on
 
 - See [ROADMAP.md](ROADMAP.md).
 
+## [0.3.2] — 2026-06-15
+
+### Added
+- `prompts.file_loader(base_dir, cache=True, on_reload=...)`: a hot-reloading
+  file loader for the prompt seam — caches prompts and re-reads only when a file's
+  mtime changes (no background watcher, no new dependencies). `cache=False` to
+  always re-read; `on_reload(name, path)` to observe (re)loads.
+
 ## [0.3.1] — 2026-06-15
 
 ### Added
@@ -75,7 +83,8 @@ All notable changes to this project are documented here. The format is based on
 - Initial release: reliability layer (`with_fallback`, `RetryPolicy`) and the
   Headroom-backed compression adapter (`compress`), plus the benchmark scaffold.
 
-[Unreleased]: https://github.com/robbiebusinessacc/justllm/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/robbiebusinessacc/justllm/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.3.2
 [0.3.1]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.3.1
 [0.3.0]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.3.0
 [0.2.0]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.2.0

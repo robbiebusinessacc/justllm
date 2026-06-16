@@ -36,18 +36,29 @@ def set_loader(loader: Optional[Callable[[str], str]]) -> None:
     _LOADER = loader
 
 
-def _read_file(name: str) -> str:
-    candidates = [name] + [
-        os.path.join(_BASE_DIR, name + ext) for ext in _EXTENSIONS
-    ]
+def _resolve(name: str, base_dir: Optional[str] = None) -> Optional[str]:
+    base = base_dir if base_dir is not None else _BASE_DIR
+    candidates = [name] + [os.path.join(base, name + ext) for ext in _EXTENSIONS]
     for path in candidates:
         if os.path.isfile(path):
-            with open(path, encoding="utf-8") as fh:
-                return fh.read()
-    raise FileNotFoundError(
-        f"prompt {name!r} not found (looked for {name} and "
-        f"{_BASE_DIR}/{name}{{{','.join(e for e in _EXTENSIONS if e)}}})"
+            return path
+    return None
+
+
+def _not_found(name: str, base_dir: Optional[str] = None) -> FileNotFoundError:
+    base = base_dir if base_dir is not None else _BASE_DIR
+    exts = ",".join(e for e in _EXTENSIONS if e)
+    return FileNotFoundError(
+        f"prompt {name!r} not found (looked for {name} and {base}/{name}{{{exts}}})"
     )
+
+
+def _read_file(name: str) -> str:
+    path = _resolve(name)
+    if path is None:
+        raise _not_found(name)
+    with open(path, encoding="utf-8") as fh:
+        return fh.read()
 
 
 def _render(template: str, variables: dict) -> str:
@@ -65,6 +76,44 @@ def load(name: str, /, **variables) -> str:
     """
     template = _LOADER(name) if _LOADER else _read_file(name)
     return _render(template, variables) if variables else template
+
+
+def file_loader(
+    base_dir: Optional[str] = None,
+    *,
+    cache: bool = True,
+    on_reload: Optional[Callable[[str, str], None]] = None,
+) -> Callable[[str], str]:
+    """A file loader for ``set_loader`` with mtime-based hot-reload.
+
+    Caches each prompt by path and re-reads only when the file's modification
+    time changes — edits are picked up without a restart, while unchanged prompts
+    are served from memory (the plain default loader re-reads on every call).
+    Pass ``cache=False`` to always re-read, and ``on_reload(name, path)`` to
+    observe (re)loads.
+
+        prompts.set_loader(prompts.file_loader("prompts"))
+    """
+    store: dict = {}  # path -> (mtime, text)
+
+    def loader(name: str) -> str:
+        path = _resolve(name, base_dir)
+        if path is None:
+            raise _not_found(name, base_dir)
+        mtime = os.path.getmtime(path)
+        if cache:
+            cached = store.get(path)
+            if cached is not None and cached[0] == mtime:
+                return cached[1]
+        with open(path, encoding="utf-8") as fh:
+            text = fh.read()
+        if cache:
+            store[path] = (mtime, text)
+        if on_reload is not None:
+            on_reload(name, path)
+        return text
+
+    return loader
 
 
 def langfuse_loader(

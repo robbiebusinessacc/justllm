@@ -118,8 +118,9 @@ and the call paths are validated live against Ollama and Groq:
   agent tool outputs are compressed automatically.
 - **Routing** — opt-in `Router` (length-based) and `Cascade` (cheap-first,
   escalate only when needed); deterministic, no extra judge call.
-- **Prompts** — `prompts.load(name, **vars)` file loader with a pluggable seam
-  (swap in Langfuse etc.); no registry built in.
+- **Prompts** — `prompts.load(name, **vars)` with a pluggable seam: the default
+  file loader, a hot-reloading `file_loader` (mtime-cached), and a Langfuse
+  registry adapter; no registry built in.
 - **Observability** — optional OpenTelemetry GenAI spans with the per-call
   `gen_ai.usage.cost` the spec omits; no-op unless `[otel]` is installed.
 - **Agent** — a minimal tool-calling loop with a hard step cap.
