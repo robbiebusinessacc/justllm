@@ -7,8 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-from justllm import LLM, RetryPolicy
-from justllm import transports
+from justllm import LLM, RetryPolicy, transports
 
 
 # --- fake provider response objects (OpenAI-shaped) ---------------------------

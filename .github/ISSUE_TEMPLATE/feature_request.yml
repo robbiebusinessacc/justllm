@@ -1,0 +1,36 @@
+name: Feature request
+description: Propose a capability or improvement.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: The concrete pain, not the solution yet.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed API
+      description: Show the smallest possible surface — ideally a 2-3 line example.
+      render: python
+  - type: dropdown
+    id: simplicity
+    attributes:
+      label: How does this stay simple?
+      description: >
+        justllm's whole bet is "powerful defaults, tiny surface." A feature must
+        earn its complexity. See CONTRIBUTING.md → Design principles.
+      options:
+        - It works with zero config (on by default, safe)
+        - It's an opt-in knob that most users never touch
+        - It replaces/simplifies something we already have
+        - It belongs in a plugin/extra, not core
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Does an existing tool already do this well?
+      description: If LiteLLM/instructor/Headroom already nail it, maybe we just document it.

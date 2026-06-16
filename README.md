@@ -1,5 +1,10 @@
 # justllm
 
+[![PyPI](https://img.shields.io/pypi/v/justllm)](https://pypi.org/project/justllm/)
+[![CI](https://github.com/robbiebusinessacc/justllm/actions/workflows/ci.yml/badge.svg)](https://github.com/robbiebusinessacc/justllm/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/pypi/pyversions/justllm)](https://pypi.org/project/justllm/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 **Production LLM calls. Just the three lines.**
 
 ```python
@@ -98,6 +103,13 @@ python -m benchmarks.run
 Measures token/cost savings from compression, the overhead the layer adds, and
 that fallback actually recovers provider failures. The suite runs even without
 the optional deps (using fallbacks), so it is never a hard blocker.
+
+## Contributing
+
+Contributions are very welcome — the goal is to stay **SOTA and easy to use** at
+the same time. Start with [CONTRIBUTING.md](CONTRIBUTING.md) (especially the
+design principles that keep the surface small), see where things are headed in
+[ROADMAP.md](ROADMAP.md), and look for `good first issue` labels.
 
 ## License
 

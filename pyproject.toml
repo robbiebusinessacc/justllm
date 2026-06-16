@@ -40,6 +40,19 @@ dev = ["build", "twine", "pytest"]
 [project.urls]
 Homepage = "https://github.com/robbiebusinessacc/justllm"
 Repository = "https://github.com/robbiebusinessacc/justllm"
+Issues = "https://github.com/robbiebusinessacc/justllm/issues"
+Changelog = "https://github.com/robbiebusinessacc/justllm/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/justllm"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
