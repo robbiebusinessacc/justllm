@@ -13,6 +13,7 @@ authors = [{ name = "Robert Walmsley" }]
 keywords = [
     "llm", "ai", "openai", "anthropic", "routing", "fallback",
     "context-compression", "orchestration", "prompt-caching",
+    "litellm-alternative", "llm-gateway", "structured-output", "agents",
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
