@@ -17,7 +17,7 @@ Pacing knobs: CHAR_DT (typing speed), PAUSE (wait after each command), END_HOLD
 import json
 import os
 
-WIDTH, HEIGHT = 82, 13
+WIDTH, HEIGHT = 82, 15
 CHAR_DT = 0.035  # per-character typing delay
 PAUSE = 0.25     # wait after a command's newline
 END_HOLD = 1.0   # final freeze before the GIF loops
@@ -58,18 +58,20 @@ def show(text: str) -> None:
 
 emit(f"{GREY}# justllm: production LLM calls in three lines{RESET}\r\n", 0.4)
 type_cmd(SH, "python")
-show(f"{GREY}Python 3.12 | justllm 0.5.0{RESET}")
+show(f"{GREY}Python 3.12 | justllm 0.7.0{RESET}")
 
-type_cmd(PY, "from justllm import LLM, compress")
+type_cmd(PY, "from justllm import LLM")
 type_cmd(PY, 'llm = LLM("anthropic/claude-opus-4-8")')
 type_cmd(PY, 'llm("In one word, the capital of France?")')
 show(f"{YELLOW}'Paris.'{RESET}")
 
-type_cmd(PY, "compress(tool_output, model='gpt-4o').pct_saved")
-show(f"{YELLOW}81.4{RESET}   {GREY}# 1369 -> 255 tokens{RESET}")
+type_cmd(PY, f"{GREY}# tool output, logs, RAG get compressed automatically (~80% smaller){RESET}")
 
-type_cmd(PY, "llm.map(prompts, concurrency=8)")
-show(f"{YELLOW}['Tokyo', 'Rome', 'Madrid', 'Cairo']{RESET}")
+type_cmd(PY, "chat = llm.chat()")
+type_cmd(PY, 'chat.send("Name three Stoic philosophers")')
+show(f"{YELLOW}'Marcus Aurelius, Seneca, Epictetus.'{RESET}")
+type_cmd(PY, 'chat.send("Which one was a Roman emperor?")')
+show(f"{YELLOW}'Marcus Aurelius.'{RESET}")
 
 emit(f"{GREY}# fallback, caching, and compression are all on by default{RESET}\r\n", 0.5)
 t += END_HOLD

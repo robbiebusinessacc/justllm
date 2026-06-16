@@ -22,8 +22,8 @@ That call already does the work you'd normally wire up yourself, on by default:
 - **Prompt-cache optimization.** Cache breakpoints go where each provider wants them (Anthropic, OpenAI, Google).
 - **Reliability.** Calls retry with backoff, then fail over to the next provider.
 
-You don't call any of these yourself; they run inside `llm(...)`. (The demo calls
-`compress()` directly just to show the savings number. Normally you never touch it.)
+You don't call any of these yourself; they run inside `llm(...)`. To turn them off
+per client: `LLM(model, compress=False, cache="off")`.
 
 ```bash
 pip install 'justllm[all]'
