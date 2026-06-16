@@ -13,7 +13,7 @@ from .compress import CompressionResult, compress
 from .reliability import RetryPolicy, awith_fallback, with_fallback
 from .router import Cascade, Router
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 __all__ = [
     "LLM",
     "Agent",

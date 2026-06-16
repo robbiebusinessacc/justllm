@@ -91,6 +91,10 @@ smart = LLM(router=Cascade(small="groq/llama-3.1-8b-instant", large="openai/gpt-
 # load prompts from files (no registry); only your {vars} are substituted
 from justllm import prompts
 prompt = prompts.load("summary", document=text)   # reads prompts/summary.txt
+
+# ...or back the same seam with a registry (Langfuse, etc.)
+prompts.set_loader(prompts.langfuse_loader(label="production"))
+prompt = prompts.load("summary", document=text)   # now fetched from Langfuse
 ```
 
 Optional OpenTelemetry tracing (`pip install 'justllm[otel]'`) emits `gen_ai.*`

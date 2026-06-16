@@ -14,7 +14,7 @@ contain other literal braces (JSON, code) without escaping.
 from __future__ import annotations
 
 import os
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 _BASE_DIR = "prompts"
 _LOADER: Optional[Callable[[str], str]] = None
@@ -65,3 +65,39 @@ def load(name: str, /, **variables) -> str:
     """
     template = _LOADER(name) if _LOADER else _read_file(name)
     return _render(template, variables) if variables else template
+
+
+def langfuse_loader(
+    *,
+    label: Optional[str] = None,
+    version: Optional[int] = None,
+    client: Any = None,
+    **client_kwargs: Any,
+) -> Callable[[str], str]:
+    """A loader that fetches text prompts from Langfuse, for ``set_loader``.
+
+        from justllm import prompts
+        prompts.set_loader(prompts.langfuse_loader(label="production"))
+        prompts.load("summary", document=text)   # fetched from Langfuse, then rendered
+
+    Returns Langfuse's LangChain-style template (``{{var}}`` -> ``{var}``), which
+    this module's renderer then fills — so it composes with the existing seam, no
+    special-casing. Needs ``pip install 'justllm[langfuse]'`` and Langfuse
+    credentials (env vars, or pass them as ``client_kwargs``). Text prompts only.
+    """
+    state = {"client": client}
+
+    def loader(name: str) -> str:
+        if state["client"] is None:
+            from langfuse import Langfuse
+
+            state["client"] = Langfuse(**client_kwargs)
+        prompt = state["client"].get_prompt(name, label=label, version=version)
+        template = prompt.get_langchain_prompt()
+        if not isinstance(template, str):
+            raise TypeError(
+                f"langfuse_loader supports text prompts; {name!r} is a chat prompt."
+            )
+        return template
+
+    return loader

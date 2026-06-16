@@ -8,6 +8,14 @@ All notable changes to this project are documented here. The format is based on
 
 - See [ROADMAP.md](ROADMAP.md).
 
+## [0.3.1] — 2026-06-15
+
+### Added
+- `prompts.langfuse_loader(...)`: a ready Langfuse adapter for the prompt-loader
+  seam. Fetches text prompts from Langfuse and renders them through the existing
+  `set_loader` seam (uses Langfuse's `{{var}}` -> `{var}` conversion). Optional
+  `[langfuse]` extra; text prompts only.
+
 ## [0.3.0] — 2026-06-15
 
 ### Added
@@ -67,7 +75,8 @@ All notable changes to this project are documented here. The format is based on
 - Initial release: reliability layer (`with_fallback`, `RetryPolicy`) and the
   Headroom-backed compression adapter (`compress`), plus the benchmark scaffold.
 
-[Unreleased]: https://github.com/robbiebusinessacc/justllm/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/robbiebusinessacc/justllm/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.3.1
 [0.3.0]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.3.0
 [0.2.0]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.2.0
 [0.1.0]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.1.0
