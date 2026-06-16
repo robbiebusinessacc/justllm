@@ -18,7 +18,7 @@ import json
 import os
 
 WIDTH, HEIGHT = 82, 13
-CHAR_DT = 0.02   # per-character typing delay
+CHAR_DT = 0.035  # per-character typing delay
 PAUSE = 0.25     # wait after a command's newline
 END_HOLD = 1.0   # final freeze before the GIF loops
 
