@@ -9,7 +9,7 @@ conservative structural pass when Headroom is not installed.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Any, List, Optional
 
 
 @dataclass(frozen=True)
@@ -57,29 +57,36 @@ def _messages_text(messages: List[dict]) -> str:
     return "\n".join(str(m.get("content", "")) for m in messages)
 
 
-def compress(messages: List[dict], model: str = "gpt-4o") -> CompressionResult:
+def compress(
+    messages: List[dict], model: str = "gpt-4o", config: Any = None
+) -> CompressionResult:
     """Compress dynamic context before it reaches the model.
 
     Tries Headroom first. If Headroom is unavailable, applies a conservative
     structural fallback so the call still works — but Headroom is the intended
     engine and the one the benchmarks are meant to measure.
+
+    `config` is an optional Headroom ``CompressConfig`` to tune what gets
+    compressed (e.g. protect recent turns, target ratio, compress user messages).
     """
     before = count_tokens(_messages_text(messages), model)
-    out = _headroom_compress(messages, model)
+    out = _headroom_compress(messages, model, config)
     if out is None:
         out = _naive_compress(messages)
     after = count_tokens(_messages_text(out), model)
     return CompressionResult(messages=out, tokens_before=before, tokens_after=after)
 
 
-def _headroom_compress(messages: List[dict], model: str) -> Optional[List[dict]]:
+def _headroom_compress(
+    messages: List[dict], model: str, config: Any = None
+) -> Optional[List[dict]]:
     try:
         import headroom  # type: ignore
     except Exception:
         return None
     try:
-        # Documented Python API: compress(messages, model=...).
-        result = headroom.compress(messages, model=model)
+        # Documented Python API: compress(messages, model=..., config=...).
+        result = headroom.compress(messages, model=model, config=config)
     except Exception:
         return None
     # Be liberal in what we accept back across Headroom versions:

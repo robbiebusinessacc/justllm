@@ -6,10 +6,11 @@ provider calls into it.
 """
 from __future__ import annotations
 
+import asyncio
 import random
 import time
 from dataclasses import dataclass
-from typing import Callable, Iterable, Optional, TypeVar
+from typing import Any, Callable, Iterable, Optional, TypeVar
 
 T = TypeVar("T")
 
@@ -82,4 +83,33 @@ def with_fallback(
                 sleep(policy.backoff(attempt))
 
     assert last_exc is not None  # providers was non-empty, so we tried at least once
+    raise last_exc
+
+
+async def awith_fallback(
+    providers: Iterable[Callable[[], Any]],
+    *,
+    policy: Optional[RetryPolicy] = None,
+    is_retryable: Callable[[Exception], bool] = _is_retryable,
+) -> Any:
+    """Async sibling of `with_fallback`. Each provider is an async callable
+    (a zero-arg function returning an awaitable)."""
+    policy = policy or RetryPolicy()
+    providers = list(providers)
+    if not providers:
+        raise ValueError("awith_fallback requires at least one provider callable")
+
+    last_exc: Optional[Exception] = None
+    for provider in providers:
+        for attempt in range(policy.max_attempts):
+            try:
+                return await provider()
+            except Exception as exc:  # noqa: BLE001 - re-raised below if terminal
+                last_exc = exc
+                last_attempt = attempt == policy.max_attempts - 1
+                if not is_retryable(exc) or last_attempt:
+                    break
+                await asyncio.sleep(policy.backoff(attempt))
+
+    assert last_exc is not None
     raise last_exc

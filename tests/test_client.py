@@ -1,13 +1,17 @@
-"""Wiring tests for the call path: transport, caching, fallback, extract, agent.
+"""Wiring tests for the call path: transport, caching, fallback, streaming,
+async, routing, structured output, and the agent loop.
 
 LiteLLM/instructor are monkeypatched, so these verify justllm's logic without
 network access or spending a cent on real calls.
 """
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 
-from justllm import LLM, RetryPolicy, transports
+from justllm import LLM, RetryPolicy, Router, transports
+from justllm import observability as obs
 
 
 # --- fake provider response objects (OpenAI-shaped) ---------------------------
@@ -29,15 +33,40 @@ class _Msg:
         self.tool_calls = tool_calls
 
 
+class _Usage:
+    prompt_tokens = 10
+    completion_tokens = 5
+
+
 class _Resp:
     def __init__(self, content=None, tool_calls=None):
         self.choices = [type("C", (), {"message": _Msg(content, tool_calls)})()]
+        self.usage = _Usage()
+
+
+class _Delta:
+    def __init__(self, content):
+        self.content = content
+
+
+def _stream_chunks(pieces):
+    for p in pieces:
+        yield type("Chunk", (), {"choices": [type("C", (), {"delta": _Delta(p)})()]})()
 
 
 class _Err(Exception):
     def __init__(self, status):
         super().__init__(str(status))
         self.status_code = status
+
+
+def _has_headroom() -> bool:
+    try:
+        import headroom  # noqa: F401
+
+        return True
+    except Exception:
+        return False
 
 
 @pytest.fixture(autouse=True)
@@ -62,12 +91,16 @@ def test_call_returns_text(monkeypatch):
         return _Resp(content="hello")
 
     _patch_completion(monkeypatch, fake)
-    llm = LLM("openai/gpt-4o", compress=False)
-    assert llm("hi") == "hello"
+    assert LLM("openai/gpt-4o", compress=False)("hi") == "hello"
     assert seen["model"] == "openai/gpt-4o"
 
 
-def test_anthropic_prompt_cache_breakpoint(monkeypatch):
+# --- cache --------------------------------------------------------------------
+def test_prompt_cache_invokes_optimizer(monkeypatch):
+    monkeypatch.setattr(
+        transports, "_optimize_cache",
+        lambda model, msgs: [{"role": "user", "content": "TAGGED"}],
+    )
     seen = {}
 
     def fake(model, messages, **kw):
@@ -76,12 +109,14 @@ def test_anthropic_prompt_cache_breakpoint(monkeypatch):
 
     _patch_completion(monkeypatch, fake)
     LLM("anthropic/claude-opus-4-8", compress=False, cache="prompt")("hello")
-    content = seen["messages"][0]["content"]
-    assert isinstance(content, list)
-    assert content[0]["cache_control"] == {"type": "ephemeral"}
+    assert seen["messages"][0]["content"] == "TAGGED"
 
 
-def test_openai_prompt_cache_is_noop(monkeypatch):
+def test_cache_off_skips_optimizer(monkeypatch):
+    monkeypatch.setattr(
+        transports, "_optimize_cache",
+        lambda model, msgs: [{"role": "user", "content": "TAGGED"}],
+    )
     seen = {}
 
     def fake(model, messages, **kw):
@@ -89,9 +124,19 @@ def test_openai_prompt_cache_is_noop(monkeypatch):
         return _Resp(content="x")
 
     _patch_completion(monkeypatch, fake)
-    LLM("openai/gpt-4o", compress=False, cache="prompt")("hello")
-    # OpenAI caches automatically; content stays a plain string.
+    LLM("anthropic/claude-opus-4-8", compress=False, cache="off")("hello")
     assert seen["messages"][0]["content"] == "hello"
+
+
+@pytest.mark.skipif(not _has_headroom(), reason="headroom-ai not installed")
+def test_optimize_cache_inserts_anthropic_breakpoint():
+    # Must exceed Headroom's 1024-token minimum for a cache breakpoint.
+    messages = [
+        {"role": "system", "content": "You are helpful.\n" + "Reference material. " * 600},
+        {"role": "user", "content": "hi"},
+    ]
+    out = transports._optimize_cache("anthropic/claude-sonnet-4-5", messages)
+    assert "cache_control" in repr(out)
 
 
 def test_exact_cache_serves_second_call(monkeypatch):
@@ -105,10 +150,10 @@ def test_exact_cache_serves_second_call(monkeypatch):
     llm = LLM("openai/gpt-4o", compress=False, cache="exact")
     assert llm("same question") == "v"
     assert llm("same question") == "v"
-    assert n["calls"] == 1  # second served from cache
+    assert n["calls"] == 1
 
 
-# --- fallback integration -----------------------------------------------------
+# --- fallback -----------------------------------------------------------------
 def test_fallback_to_second_model(monkeypatch):
     def fake(model, messages, **kw):
         if model == "openai/bad":
@@ -122,6 +167,60 @@ def test_fallback_to_second_model(monkeypatch):
         retry=RetryPolicy(max_attempts=1),
     )
     assert llm("hi") == "ok"
+
+
+# --- streaming ----------------------------------------------------------------
+def test_stream_yields_chunks(monkeypatch):
+    def fake(model, messages, stream=False, **kw):
+        assert stream is True
+        return _stream_chunks(["Hel", "lo", "!"])
+
+    _patch_completion(monkeypatch, fake)
+    out = list(LLM("openai/gpt-4o", compress=False).stream("hi"))
+    assert "".join(out) == "Hello!"
+
+
+# --- async --------------------------------------------------------------------
+def test_acall_returns_text(monkeypatch):
+    import litellm
+
+    async def fake_acompletion(model, messages, **kw):
+        return _Resp(content="async-ok")
+
+    monkeypatch.setattr(litellm, "acompletion", fake_acompletion)
+    out = asyncio.run(LLM("openai/gpt-4o", compress=False).acall("hi"))
+    assert out == "async-ok"
+
+
+# --- routing ------------------------------------------------------------------
+def test_router_picks_by_length():
+    r = Router(small="s", large="l", max_small_tokens=5)
+    assert r.choose("hi") == "s"
+    assert r.choose("word " * 80) == "l"
+
+
+def test_router_used_by_call(monkeypatch):
+    seen = {}
+
+    def fake(model, messages, **kw):
+        seen["model"] = model
+        return _Resp(content="ok")
+
+    _patch_completion(monkeypatch, fake)
+    r = Router(small="openai/small", large="openai/large", max_small_tokens=5)
+    LLM(router=r, compress=False, cache="off")("hi")
+    assert seen["model"] == "openai/small"
+
+
+# --- observability ------------------------------------------------------------
+def test_cost_of_uses_pricing_map():
+    assert abs(obs.cost_of("gpt-4o", 1_000_000, 0) - 2.50) < 1e-6
+    assert obs.cost_of("some-unknown-model", 1000, 1000) is None
+
+
+def test_call_span_is_noop_without_otel():
+    with obs.call_span("openai/gpt-4o") as rec:
+        rec.record(_Resp(content="x"))  # must not raise
 
 
 # --- structured output --------------------------------------------------------
@@ -142,6 +241,25 @@ def test_extract_returns_validated_instance(monkeypatch):
     monkeypatch.setattr(instructor, "from_litellm", lambda *a, **k: _FakeClient())
     person = LLM("openai/gpt-4o", compress=False).extract(Person, "who?")
     assert person.name == "Ada"
+
+
+def test_aextract_returns_validated_instance(monkeypatch):
+    import instructor
+    from pydantic import BaseModel
+
+    class Person(BaseModel):
+        name: str
+
+    class _FakeClient:
+        class chat:
+            class completions:
+                @staticmethod
+                async def create(model, messages, response_model, **kw):
+                    return response_model(name="Zed")
+
+    monkeypatch.setattr(instructor, "from_litellm", lambda *a, **k: _FakeClient())
+    person = asyncio.run(LLM("openai/gpt-4o", compress=False).aextract(Person, "who?"))
+    assert person.name == "Zed"
 
 
 # --- agent loop ---------------------------------------------------------------

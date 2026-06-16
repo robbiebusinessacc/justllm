@@ -16,23 +16,30 @@ absent; this is priority order, not a schedule. Ideas and PRs welcome — open a
 - Minimal tool-calling agent loop with a hard step cap
 - Benchmark suite (compression, reliability, end-to-end) + mock-tested wiring
 
-## Next — 0.2.0 (highest impact-per-complexity)
+## Shipped — 0.2.0
 
-- **Streaming** — `llm.stream("...")` yielding tokens. Table stakes for chat UIs.
-- **Async** — `await llm.acall(...)` / `aextract(...)`. LiteLLM already supports it.
-- **Observability + cost layer** — emit OpenTelemetry GenAI spans, and add the
-  per-call **dollar cost** attribute the OTel spec omits. Off unless a collector
-  is configured. (The research-identified gap nobody fills.)
+- Streaming (`llm.stream`), async (`llm.acall` / `llm.aextract` / `awith_fallback`)
+- Opt-in length-based routing (`Router`)
+- OpenTelemetry GenAI spans **with the per-call `gen_ai.usage.cost`** the spec omits
+- Headroom's per-provider cache optimizer (Anthropic/OpenAI/Google), replacing the
+  hand-rolled breakpoint
+- `CompressConfig` passthrough to tune compression
 
-## Later — 0.3.0
+## Next — 0.3.0
 
-- **Smart routing (opt-in)** — cheap-model-first cascade / quality routing
-  (RouteLLM-style), and semantic routing for intent dispatch. Opt-in, never a
-  surprise default.
+- **Quality cascade routing** — send to a cheap model first, escalate to a strong
+  one only when needed (RouteLLM-style). Builds on the length-based `Router`.
+  Opt-in, never a surprise default.
+- **CCR retrieve tool** — wire Headroom's Compress-Cache-Retrieve so an agent can
+  fetch the full, uncompressed original of a tool result on demand.
 - **Prompt loader seam** — load prompts from files / a registry (Langfuse-style)
   without building a registry ourselves.
-- **Compression tuning** — expose Headroom config (model limits, per-type
-  aggressiveness) through one clean knob.
+
+## Later
+
+- **Semantic routing** for intent dispatch (opt-in).
+- **Streaming inside the agent loop** and richer streamed tool-call handling.
+- **More provider recipes** in the cookbook.
 
 ## Explicit non-goals (the traps)
 

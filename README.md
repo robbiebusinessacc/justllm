@@ -72,26 +72,45 @@ def get_weather(city: str) -> str:
     return weather_api(city)
 
 agent.run("What should I pack for Boston this weekend?")
+
+# streaming
+for chunk in llm.stream("Tell me a short story."):
+    print(chunk, end="")
+
+# async (acall / aextract)
+reply = await llm.acall("Summarize this.")
+
+# opt-in routing: short prompts -> cheap model, long -> strong (no extra call)
+from justllm import Router
+routed = LLM(router=Router(small="groq/llama-3.1-8b-instant", large="openai/gpt-4o"))
 ```
+
+Optional OpenTelemetry tracing (`pip install 'justllm[otel]'`) emits `gen_ai.*`
+spans **with a per-call `gen_ai.usage.cost`** — the dollar figure the OTel spec
+leaves out. No-op until you configure a collector.
 
 ## Status
 
-Alpha (`0.1.0`). All wiring is unit-tested — transport, caching, fallback,
-structured output, and the agent loop are verified with mocked providers, so
-there's no network in CI:
+Alpha (`0.2.0`). Wiring is unit-tested with mocked providers (no network in CI),
+and the call paths are validated live against Ollama and Groq:
 
-- **Calls** — `llm("...")` and `llm.extract(Model, ...)` make real calls through
-  LiteLLM, wrapped in cross-provider fallback.
-- **Reliability** — `with_fallback` + `RetryPolicy`: retry-with-jitter on
-  retryable errors only, one retry layer.
-- **Caching** — native prompt caching (Anthropic breakpoint / OpenAI automatic)
-  plus an opt-in exact-match cache.
-- **Compression** — `compress` over Headroom; agent tool outputs are compressed
-  automatically.
+- **Calls** — sync `llm("...")`, async `llm.acall(...)`, and `llm.stream(...)`,
+  all through LiteLLM and wrapped in cross-provider fallback.
+- **Structured output** — `llm.extract(Model, ...)` / `await llm.aextract(...)`
+  return a validated Pydantic instance (via instructor).
+- **Reliability** — `with_fallback` / `awith_fallback` + `RetryPolicy`:
+  retry-with-jitter on retryable errors only, one retry layer.
+- **Caching** — Headroom's per-provider cache optimizer (Anthropic breakpoints;
+  OpenAI/Google handled) plus an opt-in exact-match cache.
+- **Compression** — `compress` over Headroom (tunable via `CompressConfig`);
+  agent tool outputs are compressed automatically.
+- **Routing** — opt-in `Router` (length-based, deterministic, no extra call).
+- **Observability** — optional OpenTelemetry GenAI spans with the per-call
+  `gen_ai.usage.cost` the spec omits; no-op unless `[otel]` is installed.
 - **Agent** — a minimal tool-calling loop with a hard step cap.
 
-Not yet validated against live provider APIs end-to-end (that needs keys — see
-`benchmarks/bench_e2e.py`). Treat live behavior as alpha.
+Live behavior is still alpha — exercise it with your own keys (or local Ollama)
+via `benchmarks/bench_e2e.py`.
 
 ## Benchmarks
 
@@ -113,4 +132,4 @@ design principles that keep the surface small), see where things are headed in
 
 ## License
 
-MIT © Robert Walmsley
+[MIT](LICENSE)

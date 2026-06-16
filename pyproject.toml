@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "justllm"
-version = "0.1.0"
+version = "0.2.0"
 description = "Production LLM calls. Just the three lines. Reliability, native caching, and reversible context compression on by default."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -31,10 +31,18 @@ structured = ["instructor>=1.5", "litellm>=1.70"]
 # Context compression engine. NOTE: the real package is "headroom-ai" (imports
 # as `headroom`); the bare "headroom" name on PyPI is an unrelated CLI tool.
 compression = ["headroom-ai>=0.25"]
+# OpenTelemetry tracing + cost. No-op unless installed and a collector is set up.
+otel = ["opentelemetry-sdk>=1.20"]
 # The benchmark suite (compression measurement needs tiktoken for token counts).
 benchmarks = ["tiktoken>=0.7", "headroom-ai>=0.25"]
 # Everything — the recommended install for the full "defaults on" experience.
-all = ["litellm>=1.70", "instructor>=1.5", "headroom-ai>=0.25", "tiktoken>=0.7"]
+all = [
+    "litellm>=1.70",
+    "instructor>=1.5",
+    "headroom-ai>=0.25",
+    "tiktoken>=0.7",
+    "opentelemetry-sdk>=1.20",
+]
 dev = ["build", "twine", "pytest"]
 
 [project.urls]

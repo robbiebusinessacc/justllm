@@ -8,6 +8,24 @@ All notable changes to this project are documented here. The format is based on
 
 - See [ROADMAP.md](ROADMAP.md).
 
+## [0.2.0] — 2026-06-15
+
+### Added
+- Streaming: `llm.stream(prompt)` yields text chunks.
+- Async: `llm.acall(...)`, `llm.aextract(...)`, and `awith_fallback`.
+- Opt-in routing: `Router` (length-based, deterministic) via `LLM(router=...)`.
+- Observability: optional OpenTelemetry GenAI spans with a per-call
+  `gen_ai.usage.cost` attribute and an overridable pricing map (`[otel]` extra).
+- `compress()` accepts a Headroom `CompressConfig` to tune compression.
+
+### Changed
+- Cache optimization now uses Headroom's per-provider cache optimizer
+  (multi-breakpoint, 1024-token minimum, prefix stabilization) covering
+  Anthropic, OpenAI, and Google — replacing a hand-rolled single breakpoint.
+
+### Notes
+- New call paths validated live against Ollama and Groq.
+
 ## [0.1.0] — 2026-06-15
 
 ### Added
@@ -34,6 +52,7 @@ All notable changes to this project are documented here. The format is based on
 - Initial release: reliability layer (`with_fallback`, `RetryPolicy`) and the
   Headroom-backed compression adapter (`compress`), plus the benchmark scaffold.
 
-[Unreleased]: https://github.com/robbiebusinessacc/justllm/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/robbiebusinessacc/justllm/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.2.0
 [0.1.0]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.1.0
 [0.0.1]: https://github.com/robbiebusinessacc/justllm/releases/tag/v0.0.1
