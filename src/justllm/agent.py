@@ -81,7 +81,7 @@ class Agent:
         if self.system:
             messages.append({"role": "system", "content": self.system})
         messages.append({"role": "user", "content": prompt})
-        model = self.llm._models(prompt)[0]
+        model = self.llm._primary_model(prompt)
 
         for _ in range(self.max_steps):
             resp = litellm.completion(

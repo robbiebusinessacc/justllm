@@ -1,0 +1,67 @@
+"""A tiny prompt-loader seam.
+
+Load prompts from files and render them with variables — without building a
+prompt registry (that's a hosted-service concern). Swap in Langfuse, a database,
+or anything else with ``set_loader()``.
+
+    # prompts/greeting.txt  ->  "Hello {name}, welcome to {place}."
+    from justllm import prompts
+    prompts.load("greeting", name="Robbie", place="justllm")
+
+Rendering only substitutes the variables you pass (``{name}``), so templates can
+contain other literal braces (JSON, code) without escaping.
+"""
+from __future__ import annotations
+
+import os
+from typing import Callable, Optional
+
+_BASE_DIR = "prompts"
+_LOADER: Optional[Callable[[str], str]] = None
+_EXTENSIONS = ("", ".prompt", ".txt", ".md", ".jinja", ".j2")
+
+
+def set_base_dir(path: str) -> None:
+    """Set the directory the default file loader searches."""
+    global _BASE_DIR
+    _BASE_DIR = path
+
+
+def set_loader(loader: Optional[Callable[[str], str]]) -> None:
+    """Install a custom template source: ``loader(name) -> template string``.
+
+    Pass ``None`` to revert to the default file loader.
+    """
+    global _LOADER
+    _LOADER = loader
+
+
+def _read_file(name: str) -> str:
+    candidates = [name] + [
+        os.path.join(_BASE_DIR, name + ext) for ext in _EXTENSIONS
+    ]
+    for path in candidates:
+        if os.path.isfile(path):
+            with open(path, encoding="utf-8") as fh:
+                return fh.read()
+    raise FileNotFoundError(
+        f"prompt {name!r} not found (looked for {name} and "
+        f"{_BASE_DIR}/{name}{{{','.join(e for e in _EXTENSIONS if e)}}})"
+    )
+
+
+def _render(template: str, variables: dict) -> str:
+    out = template
+    for key, value in variables.items():
+        out = out.replace("{" + key + "}", str(value))
+    return out
+
+
+def load(name: str, /, **variables) -> str:
+    """Load a prompt template by name and render it with ``variables``.
+
+    ``name`` is positional-only so a template variable can also be called
+    ``name`` (e.g. ``load("greet", name="Robbie")``).
+    """
+    template = _LOADER(name) if _LOADER else _read_file(name)
+    return _render(template, variables) if variables else template

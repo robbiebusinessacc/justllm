@@ -25,15 +25,22 @@ absent; this is priority order, not a schedule. Ideas and PRs welcome — open a
   hand-rolled breakpoint
 - `CompressConfig` passthrough to tune compression
 
-## Next — 0.3.0
+## Shipped — 0.3.0
 
-- **Quality cascade routing** — send to a cheap model first, escalate to a strong
-  one only when needed (RouteLLM-style). Builds on the length-based `Router`.
-  Opt-in, never a surprise default.
-- **CCR retrieve tool** — wire Headroom's Compress-Cache-Retrieve so an agent can
-  fetch the full, uncompressed original of a tool result on demand.
-- **Prompt loader seam** — load prompts from files / a registry (Langfuse-style)
-  without building a registry ourselves.
+- Quality cascade routing (`Cascade`) — cheap model first, escalate only when the
+  answer looks inadequate (default heuristic, or your own predicate). No judge call.
+- Prompt-loader seam — `prompts.load(name, **vars)` from files, pluggable source
+  via `set_loader()`, no registry built in.
+
+## Next
+
+- **CCR retrieve tool** — let an agent fetch the uncompressed original of a tool
+  result on demand. Deferred from 0.3.0: Headroom exposes this through its
+  proxy/MCP server, not the `compress()` library API, so it needs that mode (or a
+  thin store) wired in before it fits the library cleanly.
+- **Prompt registry adapters** — a ready Langfuse / file-watch loader for the seam.
+- **Cascade escalation v2** — optional embedding/classifier escalation signal
+  (still opt-in, still no surprise default).
 
 ## Later
 

@@ -83,6 +83,14 @@ reply = await llm.acall("Summarize this.")
 # opt-in routing: short prompts -> cheap model, long -> strong (no extra call)
 from justllm import Router
 routed = LLM(router=Router(small="groq/llama-3.1-8b-instant", large="openai/gpt-4o"))
+
+# cheap-first cascade: escalate to the strong model only when needed
+from justllm import Cascade
+smart = LLM(router=Cascade(small="groq/llama-3.1-8b-instant", large="openai/gpt-4o"))
+
+# load prompts from files (no registry); only your {vars} are substituted
+from justllm import prompts
+prompt = prompts.load("summary", document=text)   # reads prompts/summary.txt
 ```
 
 Optional OpenTelemetry tracing (`pip install 'justllm[otel]'`) emits `gen_ai.*`
@@ -91,7 +99,7 @@ leaves out. No-op until you configure a collector.
 
 ## Status
 
-Alpha (`0.2.0`). Wiring is unit-tested with mocked providers (no network in CI),
+Alpha (`0.3.0`). Wiring is unit-tested with mocked providers (no network in CI),
 and the call paths are validated live against Ollama and Groq:
 
 - **Calls** — sync `llm("...")`, async `llm.acall(...)`, and `llm.stream(...)`,
@@ -104,7 +112,10 @@ and the call paths are validated live against Ollama and Groq:
   OpenAI/Google handled) plus an opt-in exact-match cache.
 - **Compression** — `compress` over Headroom (tunable via `CompressConfig`);
   agent tool outputs are compressed automatically.
-- **Routing** — opt-in `Router` (length-based, deterministic, no extra call).
+- **Routing** — opt-in `Router` (length-based) and `Cascade` (cheap-first,
+  escalate only when needed); deterministic, no extra judge call.
+- **Prompts** — `prompts.load(name, **vars)` file loader with a pluggable seam
+  (swap in Langfuse etc.); no registry built in.
 - **Observability** — optional OpenTelemetry GenAI spans with the per-call
   `gen_ai.usage.cost` the spec omits; no-op unless `[otel]` is installed.
 - **Agent** — a minimal tool-calling loop with a hard step cap.

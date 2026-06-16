@@ -66,10 +66,13 @@ class LLM:
             messages = _compress(messages).messages
         return messages
 
-    def _models(self, prompt: str) -> List[str]:
+    def _primary_model(self, prompt: str) -> str:
         if self.router is not None:
-            return [self.router.choose(prompt)]
-        return self.chain
+            return self.router.primary(prompt)
+        return self.chain[0]
+
+    def _chain_for(self, prompt: str) -> List[str]:
+        return [self._primary_model(prompt)] if self.router is not None else self.chain
 
     # -- sync ------------------------------------------------------------------
     def __call__(self, prompt: str, **kwargs: Any) -> str:
@@ -77,20 +80,26 @@ class LLM:
 
         messages = self._prepare(prompt)
 
-        def caller(model: str):
-            return lambda: complete(model, messages, cache=self.cache, **kwargs)
+        def run(model: str) -> str:
+            return complete(model, messages, cache=self.cache, **kwargs)
+
+        if self.router is not None:
+            return self.router.route(
+                prompt, lambda model: with_fallback([lambda: run(model)], policy=self.retry)
+            )
 
         return with_fallback(
-            [caller(m) for m in self._models(prompt)], policy=self.retry
+            [lambda m=m: run(m) for m in self.chain], policy=self.retry
         )
 
     def stream(self, prompt: str, **kwargs: Any) -> Iterator[str]:
         """Yield text chunks. Streams from the routed/primary model (no mid-stream
-        failover — a broken stream can't be silently retried)."""
+        failover — a broken stream can't be silently retried, and a cascade can't
+        judge an answer it hasn't finished receiving)."""
         from .transports import stream as _stream
 
         messages = self._prepare(prompt)
-        model = self._models(prompt)[0]
+        model = self._primary_model(prompt)
         yield from _stream(model, messages, cache=self.cache, **kwargs)
 
     def extract(self, schema: Type, prompt: str, **kwargs: Any):
@@ -116,7 +125,7 @@ class LLM:
             return call
 
         return with_fallback(
-            [caller(m) for m in self._models(prompt)], policy=self.retry
+            [caller(m) for m in self._chain_for(prompt)], policy=self.retry
         )
 
     # -- async -----------------------------------------------------------------
@@ -131,8 +140,14 @@ class LLM:
 
             return call
 
+        if self.router is not None:
+            async def arun(model: str):
+                return await awith_fallback([caller(model)], policy=self.retry)
+
+            return await self.router.aroute(prompt, arun)
+
         return await awith_fallback(
-            [caller(m) for m in self._models(prompt)], policy=self.retry
+            [caller(m) for m in self.chain], policy=self.retry
         )
 
     async def aextract(self, schema: Type, prompt: str, **kwargs: Any):
@@ -157,7 +172,7 @@ class LLM:
             return call
 
         return await awith_fallback(
-            [caller(m) for m in self._models(prompt)], policy=self.retry
+            [caller(m) for m in self._chain_for(prompt)], policy=self.retry
         )
 
     # -- agent -----------------------------------------------------------------

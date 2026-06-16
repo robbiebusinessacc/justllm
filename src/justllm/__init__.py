@@ -6,20 +6,23 @@ purpose; when you need a dozen knobs, reach for LiteLLM.
 """
 from __future__ import annotations
 
+from . import prompts
 from .agent import Agent
 from .client import LLM
 from .compress import CompressionResult, compress
 from .reliability import RetryPolicy, awith_fallback, with_fallback
-from .router import Router
+from .router import Cascade, Router
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 __all__ = [
     "LLM",
     "Agent",
     "Router",
+    "Cascade",
     "RetryPolicy",
     "with_fallback",
     "awith_fallback",
     "compress",
     "CompressionResult",
+    "prompts",
 ]

@@ -10,7 +10,7 @@ import asyncio
 
 import pytest
 
-from justllm import LLM, RetryPolicy, Router, transports
+from justllm import LLM, Cascade, RetryPolicy, Router, transports
 from justllm import observability as obs
 
 
@@ -210,6 +210,48 @@ def test_router_used_by_call(monkeypatch):
     r = Router(small="openai/small", large="openai/large", max_small_tokens=5)
     LLM(router=r, compress=False, cache="off")("hi")
     assert seen["model"] == "openai/small"
+
+
+def test_cascade_no_escalation(monkeypatch):
+    calls = []
+
+    def fake(model, messages, **kw):
+        calls.append(model)
+        return _Resp(content="A complete, confident answer.")
+
+    _patch_completion(monkeypatch, fake)
+    out = LLM(
+        router=Cascade(small="m/small", large="m/large"), compress=False, cache="off"
+    )("q")
+    assert out == "A complete, confident answer."
+    assert calls == ["m/small"]  # never touched the large model
+
+
+def test_cascade_escalates_on_refusal(monkeypatch):
+    def fake(model, messages, **kw):
+        return _Resp(content="I don't know." if model == "m/small" else "Paris.")
+
+    _patch_completion(monkeypatch, fake)
+    out = LLM(
+        router=Cascade(small="m/small", large="m/large"), compress=False, cache="off"
+    )("q")
+    assert out == "Paris."
+
+
+def test_cascade_custom_predicate(monkeypatch):
+    calls = []
+
+    def fake(model, messages, **kw):
+        calls.append(model)
+        return _Resp(content="anything")
+
+    _patch_completion(monkeypatch, fake)
+    LLM(
+        router=Cascade(small="m/small", large="m/large", escalate_if=lambda a: True),
+        compress=False,
+        cache="off",
+    )("q")
+    assert calls == ["m/small", "m/large"]  # predicate forces escalation
 
 
 # --- observability ------------------------------------------------------------
