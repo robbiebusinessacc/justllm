@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "justllm"
+version = "0.1.0"
+description = "Production LLM calls. Just the three lines. Reliability, native caching, and reversible context compression on by default."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Robert Walmsley" }]
+keywords = [
+    "llm", "ai", "openai", "anthropic", "routing", "fallback",
+    "context-compression", "orchestration", "prompt-caching",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = []
+
+[project.optional-dependencies]
+# Provider transport (real calls) — keeps the core install light.
+litellm = ["litellm>=1.70"]
+# Structured output via instructor over LiteLLM.
+structured = ["instructor>=1.5", "litellm>=1.70"]
+# Context compression engine. NOTE: the real package is "headroom-ai" (imports
+# as `headroom`); the bare "headroom" name on PyPI is an unrelated CLI tool.
+compression = ["headroom-ai>=0.25"]
+# The benchmark suite (compression measurement needs tiktoken for token counts).
+benchmarks = ["tiktoken>=0.7", "headroom-ai>=0.25"]
+# Everything — the recommended install for the full "defaults on" experience.
+all = ["litellm>=1.70", "instructor>=1.5", "headroom-ai>=0.25", "tiktoken>=0.7"]
+dev = ["build", "twine", "pytest"]
+
+[project.urls]
+Homepage = "https://github.com/robbiebusinessacc/justllm"
+Repository = "https://github.com/robbiebusinessacc/justllm"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/justllm"]
