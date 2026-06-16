@@ -1,11 +1,15 @@
-"""End-to-end latency benchmark — makes a REAL model call.
+"""End-to-end benchmark — makes REAL model calls.
 
-Prefers a hosted model if an API key is set, otherwise falls back to a local
-Ollama model (free, keyless). Skips cleanly if neither is available, so it never
-spends money or fails in CI by surprise.
+Prefers a hosted model if an API key is set (OpenAI / Anthropic / Groq),
+otherwise falls back to a local Ollama model (free, keyless). Skips cleanly if
+neither is available, so it never spends money or fails in CI by surprise.
 
-    OPENAI_API_KEY=sk-... python -m benchmarks.bench_e2e   # hosted
-    python -m benchmarks.bench_e2e                          # local Ollama, if running
+Exercises the full call path: a basic completion, structured output, and an
+agent tool call. The structured-output and agent probes need a reasonably
+capable model — tiny local models will report WEAK MODEL rather than crash.
+
+    GROQ_API_KEY=gsk_... python -m benchmarks.bench_e2e   # free, capable
+    python -m benchmarks.bench_e2e                         # local Ollama, if running
 """
 from __future__ import annotations
 
@@ -16,7 +20,6 @@ import urllib.request
 
 
 def _ollama_model() -> str | None:
-    """First locally-available Ollama model, as a LiteLLM model string."""
     host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
     if not host.startswith("http"):
         host = "http://" + host
@@ -38,6 +41,52 @@ def _model() -> str | None:
     return _ollama_model()
 
 
+def _probe_extract(model: str, results: dict) -> None:
+    try:
+        from pydantic import BaseModel
+
+        from justllm import LLM
+
+        class _City(BaseModel):
+            name: str
+            country: str
+
+        city = LLM(model, compress=False).extract(
+            _City, "The Eiffel Tower is in Paris, France."
+        )
+        ok = isinstance(city, _City) and bool(city.name)
+        print(f"e2e: extract -> {city!r} [{'OK' if ok else 'WEAK MODEL'}]")
+        results["extract_ok"] = ok
+    except Exception as exc:
+        print(f"e2e: extract -> FAILED ({type(exc).__name__}) [weak model / no support]")
+        results["extract_ok"] = False
+
+
+def _probe_agent(model: str, results: dict) -> None:
+    try:
+        from justllm import LLM
+
+        agent = LLM(model, compress=False).agent(
+            system="Use the add tool for any arithmetic.", max_steps=4
+        )
+        seen: dict = {}
+
+        @agent.tool
+        def add(a: int, b: int) -> int:
+            "Add two integers."
+            seen["args"] = (a, b)
+            return a + b
+
+        out = agent.run("What is 21 + 21? Use the add tool.")
+        called = seen.get("args") is not None
+        print(f"e2e: agent   -> {out[:50]!r} tool_called={called} "
+              f"[{'OK' if called else 'WEAK MODEL'}]")
+        results["agent_tool_called"] = called
+    except Exception as exc:
+        print(f"e2e: agent   -> FAILED ({type(exc).__name__}) [weak model / no tools]")
+        results["agent_tool_called"] = False
+
+
 def run() -> dict:
     model = _model()
     if model is None:
@@ -46,12 +95,15 @@ def run() -> dict:
 
     from justllm import LLM
 
-    llm = LLM(model)
     start = time.perf_counter()
-    reply = llm("In one word: the capital of France?")
+    reply = LLM(model)("In one word: the capital of France?")
     latency_ms = (time.perf_counter() - start) * 1000
     print(f"e2e: model={model} latency={latency_ms:.0f}ms reply={reply[:60]!r}")
-    return {"skipped": False, "model": model, "latency_ms": latency_ms}
+
+    results = {"skipped": False, "model": model, "latency_ms": latency_ms}
+    _probe_extract(model, results)
+    _probe_agent(model, results)
+    return results
 
 
 if __name__ == "__main__":
